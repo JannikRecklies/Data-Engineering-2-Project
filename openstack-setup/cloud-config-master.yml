@@ -1,0 +1,36 @@
+#cloud-config
+
+apt_update: true
+apt_upgrade: true
+
+packages:
+  - apt-transport-https 
+  - ca-certificates 
+  - curl
+  - software-properties-common
+  - docker.io
+  - nova-compute
+  - python3-openstackclient
+  - python3-pip
+
+byobu_default: system
+
+runcmd:
+  # Download docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+  - apt-get update -y
+  - apt-get install -y docker-ce
+  # Download github repo
+  - cd /home/ubuntu
+  - git clone https://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@github.com/JannikRecklies/DataEngineering2.git
+  - su - ubuntu -c "git clone https://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@github.com/JannikRecklies/Data-Engineering-2-Project.git"
+  - cd Data-Engineering-2-Project
+  - git config --global user.email jannik.recklies@gmx.de
+  - git config --global user.name JannikRecklies
+  # Download k3s, setup clustere and make it accessible for non root users 
+  - curl -sfL https://get.k3s.io | sh -
+  - sudo chmod 644 /etc/rancher/k3s/k3s.yaml
+  - echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> /home/ubuntu/.bashrc
+
+final_message: "The system is finally up, after $UPTIME seconds"

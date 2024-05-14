@@ -1,0 +1,29 @@
+#cloud-config
+
+apt_update: true
+apt_upgrade: true
+
+packages:
+  - apt-transport-https 
+  - ca-certificates 
+  - curl
+
+users:
+  - name: appuser
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    home: /home/appuser
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDgkM6+XkBvUkqdVher0/Tczo5malHRluellPMcgdoS3beTD3IxuE3EFRK6WUrs5bjHJCU3P0TqXhGpq1tAaYJwhVW3L4cG87w3/ZhJRUzgc5coFe5rB2bHLm9wubjh4d1K3OylRTEbxZo+7FYl7O2bLRWUNGY16ItfDeA+CmouC/5I9fH15j6WY5zhCIHV1XU3NH/63rxiiiAatVoCe0dWby8/UDc+D6vgElfOKNm+wJDimAmwvCJPqce6QZRgHugVIrmslYcutCj2igCNc1b2LvI7krhDMWxgQ3LqJ7OiqqHwM/IXgjSuUQFRmicHTfcWiCu86aYfTrpN3WJ2nYSwgvByuFG6iPJ7gzvni2ey/zxjUs82yA+/b0LYtpX66X4BdHhLbijDVc0xinCxGRBFoTB546j2eC6vwNgeYgJu1OHoSQXmEPa6D7NYPK+iWCvq4z6N/4E7dBB4V5fEu6hPLc97B9eRSVCGgWiYa/Oa9BDRP22zBiv/hQ7fvb72k8E= ubuntu@jannik-recklies-project
+
+# Replace these variables with actual values
+k3s_server_url: https://192.168.2.33:6443
+k3s_token: K109ae992fcd724fbd8b7b7454a8be89c155ec1ec2cc4e5e176607ec75aac3226b1::server:9a876ddbcf25f57774de56a168381c6a
+
+runcmd:
+  # - curl -sfL https://get.k3s.io | K3S_URL=https://192.168.2.33:6443 K3S_TOKEN=K109ae992fcd724fbd8b7b7454a8be89c155ec1ec2cc4e5e176607ec75aac3226b1::server:9a876ddbcf25f57774de56a168381c6a sh -
+  - curl -sfL https://get.k3s.io | K3S_URL=https://<IP>:6443 K3S_TOKEN=<k3s_token> sh -
+
+byobu_default: system
+
+final_message: "The system is finally up, after $UPTIME seconds"
