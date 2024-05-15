@@ -23,7 +23,6 @@ runcmd:
   - apt-get install -y docker-ce
   # Download github repo
   - cd /home/ubuntu
-  - git clone https://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@github.com/JannikRecklies/DataEngineering2.git
   - su - ubuntu -c "git clone https://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@github.com/JannikRecklies/Data-Engineering-2-Project.git"
   - cd Data-Engineering-2-Project
   - git config --global user.email jannik.recklies@gmx.de
@@ -32,5 +31,7 @@ runcmd:
   - curl -sfL https://get.k3s.io | sh -
   - sudo chmod 644 /etc/rancher/k3s/k3s.yaml
   - echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> /home/ubuntu/.bashrc
+  # Install helm
+  - curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 final_message: "The system is finally up, after $UPTIME seconds"

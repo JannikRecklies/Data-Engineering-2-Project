@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulsar-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pulsar
+  template:
+    metadata:
+      labels:
+        app: pulsar
+    spec:
+      containers:
+        - name: pulsar
+          image: apachepulsar/pulsar:3.2.2
+          command: ["bin/pulsar", "standalone"]
+          ports:
+            - containerPort: 6650
+            - containerPort: 8080
+          volumeMounts:
+            - name: pulsardata
+              mountPath: /pulsar/data
+            - name: pulsarconf
+              mountPath: /pulsar/conf
+      volumes:
+        - name: pulsardata
+          emptyDir: {}
+        - name: pulsarconf
+          configMap:
+            name: pulsar-config
+

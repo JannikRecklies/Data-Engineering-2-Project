@@ -7,7 +7,7 @@
 
 3. Launch Instance on snic-cloud with copied/edited configuration
 
-4. Give VM floating IP and access it through ssh
+4. Give VM floating IP and access it through ssh (The cloud-init process may take a few minutes)
 
 ### Openstack-setup: Setting up worker nodes for K3s Cluster
 1. Generate ssh keys: 
@@ -36,7 +36,7 @@ password".).
     python3 start_instance.py
     ```
 
-6. Wait until workers have been finished initializing (cloud-init cmds are finished) and they are being registered as nodes in the k3s cluster. The progress of the cloud-init can be seen by running the following commands:
+6. Wait until workers have been finished initializing (the cloud-init process may take a few minutes) and they are being registered as nodes in the k3s cluster. The progress of the cloud-init can be seen by running the following commands:
     ```console 
     ssh -i /home/ubuntu/.ssh/cluster-key appuser@<Worker-VM-IP>
     sudo cat /var/log/cloud-init-output.log
