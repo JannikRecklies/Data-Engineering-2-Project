@@ -17,10 +17,10 @@ byobu_default: system
 
 runcmd:
   # Download docker
-  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-  - add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-  - apt-get update -y
-  - apt-get install -y docker-ce
+  #- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  #- add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+  #- apt-get update -y
+  #- apt-get install -y docker-ce
   # Download github repo
   - cd /home/ubuntu
   - su - ubuntu -c "git clone https://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@github.com/JannikRecklies/Data-Engineering-2-Project.git"

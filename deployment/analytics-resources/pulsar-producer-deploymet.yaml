@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulsar-producer-deployment
+  labels:
+    app: pulsar-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pulsar-producer
+  template:
+    metadata:
+      labels:
+        app: pulsar-producer
+    spec:
+      containers:
+      - name: pulsar-producer
+        image: jannikrecklies/pulsar-producer-1:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+

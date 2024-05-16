@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pulsar-consumer-deployment
+  labels:
+    app: pulsar-consumer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pulsar-consumer
+  template:
+    metadata:
+      labels:
+        app: pulsar-consumer
+    spec:
+      containers:
+      - name: pulsar-consumer
+        image: jannikrecklies/pulsar-consumer-1:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+

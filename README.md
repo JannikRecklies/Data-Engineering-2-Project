@@ -1,81 +1,26 @@
-# DataEngineering2
+# DE2 - Project: Github analytic system
 
-### Openstack-setup: Setting up master node (VM with floating IP)
-1. Copying content from cloud-config-master.yml
+The project aims to develop a GitHub analytic system using Apache Pulsar to gain insights into repositories. By overcoming search and rate limit challenges in the GitHub API, metadata on recent open-source projects is collected. Through a layered topic design, the system processes this data to answer key questions, such as identifying top programming languages and projects. 
 
-2. Edit content as needed
+## Project Structure
+For development purposes this github project is devided into the following subfolders:
+- **openstack-setup**: outline the setup of a k3s cluster on OpenStack, including creating a master node with a floating IP and launching worker nodes using customized cloud-config files and a Python script.
 
-3. Launch Instance on snic-cloud with copied/edited configuration
+- **services**: Contains the source code for processing and analytics pyhton files that are later deployed
+- **simple-k8s-deployment-example**: Provides guidance on pushing a simple Python application to Docker Hub and deploying it in a Kubernetes environment
+- **deployment**: Deployment Files and Guidline for the entire analytic system in Kubernetes, including the Pulsar Helm chart and other processing and analytics resources
 
-4. Give VM floating IP and access it through ssh (The cloud-init process may take a few minutes)
+## System architecture
+The whole system is deployed in a Kubernetes environment (K3s) and contains the following components:
 
-### Openstack-setup: Setting up worker nodes for K3s Cluster
-1. Generate ssh keys: 
-    ```console 
-    ssh-keygen -t rsa
-    ```
-    (Set the file path /home/ubuntu/.ssh/cluster-key Do not set the password, simply press enter twice)
+- **Pulsar Producer**:
+This part is responsible for fetching metadata information about repositories from the GitHub API. It then publishes the repository metadata to designated Pulsar topics for further processing.
+- **Pulsar Cluster**:
+This part, especially the broker, is responsible for handling incoming and outgoing messages within the messaging system. It routes messages between producers and consumers, ensures message durability, and manages topics and subscriptions.
+- **Pulsar Consumer**:
+This part is responsible for consuming repository metadata messages from Pulsar topics. It processes the metadata, performs any required analytics or transformations, and stores the results somewhere (as you mentioned).
+- **Storage**:
+A database used to store the consumer analytics results. Later, the Serving Web Application then fetches data from here
+- **Serving Web App**:
+This part is responsible for summarizing and displaying the results derived from the processed metadata. It hosts a web server and API that serves the summarized analytics results to end users or other systems.
 
-2. Replace values for ssh_authorized_keys, K3S_URL, K3S_TOKEN in file cloud-config-worker.yml. The values can be retrieved by entering the following lines in the terminal:
-    ```console 
-    sudo cat /home/ubuntu/.ssh/cluster-key.pub
-    hostname -I
-    sudo cat /var/lib/rancher/k3s/server/node-token
-    ```
-
-3. Download the Runtime Configuration (RC) file from the SSC site and set API access password (Goto https://cloud.snic.se/, Left frame, under Services "Set your API
-password".). 
-
-4. Set the environment variables by sourcing the RC-file in the client VM:
-    ```console 
-    source UPPMAX\ 2024_1-4-openrc.sh
-    ```
-
-5. Replace values in line 11-16 in start_instance.py as needed and run the following command to start VM's:
-    ```console 
-    python3 start_instance.py
-    ```
-
-6. Wait until workers have been finished initializing (the cloud-init process may take a few minutes) and they are being registered as nodes in the k3s cluster. The progress of the cloud-init can be seen by running the following commands:
-    ```console 
-    ssh -i /home/ubuntu/.ssh/cluster-key appuser@<Worker-VM-IP>
-    sudo cat /var/log/cloud-init-output.log
-    ```
-
-### Simple k3s deployment example
-
-1. Building the Docker Image
-    ```console 
-    docker build -t <your-dockerhub-username>/test-python-app:latest .
-
-    ```
-
-2. Push the Docker Image to a Container Registry
-    ```console 
-    docker login
-    docker push your-dockerhub-username/your-python-app:latest
-    ```
-
-3. Now the docker image can be used to setup a deployment as shown in the ./k3s-example.
-
-4. In case the pods are not starting properly, it might help to try out starting the docker container without kubernetes:
-    ```console 
-    docker pull jannikrecklies/test-python-app:latest
-    docker run -d -p 5100:5100 jannikrecklies/test-python-app:latest
-
-    docker ps
-    docker stop <container_id_or_name>
-    docker rm <container_id_or_name>
-    ```
-
-5. Kubernetes Deployment:
-    ```console 
-    # Create or Update a Deployment
-    kubectl apply -f deployment.yaml
-    # Delete deployment
-    kubectl delete deployment <deployment-name>
-    # Get all resources
-    kubectl get all
-    # Get logs
-    kubectl logs <deployment-name>
-    ```
