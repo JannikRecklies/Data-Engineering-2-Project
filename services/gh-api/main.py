@@ -41,7 +41,16 @@ def main():
     if not bearer_token:
         print("Error: GitHub bearer token not found in environment variable 'GITHUB_BEARER_TOKEN'")
         return
-    myProducer = PulsarProducer('pulsar://localhost:6650', 'gh_obj_topic')
+    pulsar_ep = os.getenv("PULSAR_EP")
+    if not pulsar_ep:
+        print("Error: Pulsar endpoint not found in environment variable 'PULSAR_EP'")
+        return
+    pulsar_topic = os.getenv("PULSAR_TOPIC")
+    if not pulsar_ep:
+        print("Error: Pulsar topic not found in environment variable 'PULSAR_TOPIC'")
+        return
+    # 'pulsar://localhost:6650', 'gh_obj_topic'
+    myProducer = PulsarProducer(pulsar_ep, pulsar_topic)
     GetRepositoriesMetaData(bearer_token, myProducer)
 
     
