@@ -46,10 +46,11 @@ def main():
         print("Error: Pulsar endpoint not found in environment variable 'PULSAR_EP'")
         return
     pulsar_topic = os.getenv("PULSAR_TOPIC")
-    if not pulsar_ep:
+    if not pulsar_topic:
         print("Error: Pulsar topic not found in environment variable 'PULSAR_TOPIC'")
         return
-    # 'pulsar://localhost:6650', 'gh_obj_topic'
+    # export PULSAR_TOPIC="gh_obj_topic"
+    # export PULSAR_EP="pulsar://localhost:6650"
     myProducer = PulsarProducer(pulsar_ep, pulsar_topic)
     GetRepositoriesMetaData(bearer_token, myProducer)
 
