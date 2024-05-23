@@ -22,6 +22,7 @@ def GetRepoLanguages(token, myConsumer, myProducer):
             "Authorization": "Bearer {}".format(token),
             "X-GitHub-Api-Version": "2022-11-28"
         }
+    else:
         print("Error: No language ep available for {}".format(gh_obj["full_name"]))
 
     response = requests.get(url, headers=headers)
@@ -63,7 +64,7 @@ def main():
     # export PULSAR_PUSH_TOPIC="gh_language_topic"
     # export PULSAR_SUBSCRIPTION="gh_obj_subscription"
     # export PULSAR_EP="pulsar://localhost:6650"
-    myConsumer = PulsarConsumer(pulsar_ep, pulsar_pull_topic, pulsar_subscription)
+    myConsumer = PulsarConsumer(pulsar_ep, pulsar_pull_topic, pulsar_subscription, pulsar.ConsumerType.Shared)
     myProducer = PulsarProducer(pulsar_ep, pulsar_push_topic)
     GetRepoLanguages(bearer_token, myConsumer, myProducer)
 

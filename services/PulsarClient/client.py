@@ -15,6 +15,10 @@ class PulsarConsumer(PulsarClient):
     def __init__(self, pulsar_ep, topic, sub_name):
         PulsarClient.__init__(self, pulsar_ep)
         self.Subscribe(topic, sub_name)
+    
+    def __init__(self, pulsar_ep, topic, sub_name, sub_consumer_type):
+        PulsarClient.__init__(self, pulsar_ep)
+        self.Subscribe(topic, sub_name, sub_consumer_type)
 
 
     def Consume(self):
@@ -29,6 +33,9 @@ class PulsarConsumer(PulsarClient):
 
     def Subscribe(self, topic, sub_name):
         self.subscription = self.client.subscribe(topic, subscription_name=sub_name)
+
+    def Subscribe(self, topic, sub_name, sub_consumer_type):
+        self.subscription = self.client.subscribe(topic, subscription_name=sub_name, consumer_type=sub_consumer_type)
     
 
 
