@@ -28,27 +28,32 @@ def fetch_repositories_for_date(date, headers, pulsar_producer):
     while True:
         query = f"q=created:{date}..{date}&sort=updated&order=desc&per_page={GITHUB_REPOS_PER_PAGE}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
-        if response.status_code != 200:
+        if response.status_code == 200:
+            repo_info = {}
+            
+            data = response.json()
+            for repo in data:
+                repo_info["full_name"] = repo["full_name"]
+                repo_info["languages_url"] = repo["languages_url"]
+                repo_info["commits_url"] = repo["commits_url"]
+                repo_info["contents_url"] = repo["contents_url"]
+                # print("producing:", json.dumps(repo))
+                pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
+            
+            if 'next' not in response.links:
+                break
+            
+            page += 1
+            time.sleep(10)  # Respect rate limits with a delay between requests 
+        elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+            reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+            wait_time_sec = max(reset_time - time.time(), 1)
+            wait_time_min = wait_time_sec / 60
+            logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min} minutes.")
+            time.sleep(wait_time_sec)
+        else:
+            logging.error("Error fetching data")
             raise Exception(f"Error fetching data: {response.json()}")
-        
-        data = response.json()
-        # Process data['items']
-        repo_info = {}
-        
-        for repo in data:
-            repo_info["full_name"] = repo["full_name"]
-            repo_info["languages_url"] = repo["languages_url"]
-            repo_info["commits_url"] = repo["commits_url"]
-            repo_info["contents_url"] = repo["contents_url"]
-            # print("producing:", json.dumps(repo))
-            pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
-        
-        if 'next' not in response.links:
-            break
-        
-        page += 1
-        # print(f"request url: {response.request.url}")
-        time.sleep(10)  # Respect rate limits with a delay between requests
     
 
 # Function to fetch repositories for the past year
