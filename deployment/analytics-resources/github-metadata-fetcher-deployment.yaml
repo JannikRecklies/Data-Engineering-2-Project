@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-metadata-fetcher
+  labels:
+    app: github-metadata-fetcher
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-metadata-fetcher
+  template:
+    metadata:
+      labels:
+        app: github-metadata-fetcher
+    spec:
+      containers:
+      - name: github-metadata-fetcher
+        image: jannikrecklies/gh-metadata-fetcher:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          value: 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
+        - name: PULSAR_PUSH_TOPIC
+          value: languages-processing
+
+

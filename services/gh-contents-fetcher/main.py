@@ -2,6 +2,16 @@ import os
 import requests
 import json
 import pulsar
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level to INFO
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# sudo docker build -t jannikrecklies/gh-tdd-processor:latest .
+# sudo docker push jannikrecklies/gh-tdd-processor:latest
 
 # Constants for environment variables
 GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
@@ -45,9 +55,8 @@ def check_tdd(contents_url, headers):
     """Check if a repository follows TDD based on its contents."""
     return check_directory(contents_url, headers)
 
-def process_message(message, bearer_token):
+def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD."""
-    print(f"Received message: '{message.data()}'")
     data = json.loads(message.data())
     repo_name = data.get('full_name')
     contents_url = data.get('contents_url').replace('{+path}', '')
@@ -59,13 +68,15 @@ def process_message(message, bearer_token):
             "X-GitHub-Api-Version": "2022-11-28"
         }
     else:
-        print(f"Error: No contents_url available for {repo_name}")
+        error_msg = f"Error: No contents_url available for {repo_name}"
+        logging.error(error_msg)
         return
 
-    if check_tdd(contents_url, headers):
-        print(f"The repository {repo_name} follows TDD.")
-    else:
-        print(f"The repository {repo_name} does not follow TDD.")
+    is_repo_tdd = check_tdd(contents_url, headers)
+    data["tdd"] = is_repo_tdd
+    producer.send(json.dumps(data).encode('utf-8'))
+    logging.info(f"The repository {repo_name} follows TDD: {is_repo_tdd}")
+
 
 def env_vars_set_correct():
     """Check if the required environment variables are set."""
@@ -73,12 +84,13 @@ def env_vars_set_correct():
     missing_vars = [var for var in required_env_vars if not os.getenv(var)]
     if missing_vars:
         for var in missing_vars:
-            print(f"Error: {var} not found in environment variables.")
+            logging.error(f"Error: {var} not found in environment variables.")
         return False
     return True
 
 def main():
     """Main function to run the Pulsar consumer."""
+    logging.info("Starting application")
     if not env_vars_set_correct():
         print("Environment variables are missing or not set properly")
         return
@@ -86,6 +98,7 @@ def main():
     bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
     pulsar_broker_url = os.getenv(PULSAR_BROKER_URL)
     pulsar_pull_topic = os.getenv(PULSAR_PULL_TOPIC)
+    pulsar_push_topic = os.getenv(PULSAR_PUSH_TOPIC)
 
     client = pulsar.Client(pulsar_broker_url)
     consumer = client.subscribe(
@@ -93,14 +106,16 @@ def main():
         subscription_name=PULSAR_SUBSCRIPTION_NAME, 
         consumer_type=pulsar.ConsumerType.Shared
     )
+    producer = client.create_producer(pulsar_push_topic)
+    
     try:
         while True:
             msg = consumer.receive()
             try:
-                process_message(msg, bearer_token)
+                process_message(msg, bearer_token, producer)
                 consumer.acknowledge(msg)
             except Exception as e:
-                print(f"Failed to process message: {e}")
+                logging.error(f"Failed to process message: {e}")
                 consumer.negative_acknowledge(msg)
     finally:
         client.close()

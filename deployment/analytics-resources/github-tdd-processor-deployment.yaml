@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-tdd-processor
+  labels:
+    app: github-tdd-processor
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-tdd-processor
+  template:
+    metadata:
+      labels:
+        app: github-tdd-processor
+    spec:
+      containers:
+      - name: github-metadata-fetcher
+        image: jannikrecklies/gh-tdd-processor:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          value: 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
+        - name: PULSAR_PULL_TOPIC
+          value: languages-processing
+        - name: PULSAR_PUSH_TOPIC
+          value: languages-tdd
+
+
