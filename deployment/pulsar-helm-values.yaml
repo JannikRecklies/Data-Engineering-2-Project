@@ -31,9 +31,13 @@ affinity:
 
 zookeeper:
   replicaCount: 1
+  podMonitor:
+    enabled: false   # Disable pod monitor since we're disabling CRD installation
 
 bookkeeper:
   replicaCount: 1
+  podMonitor:
+    enabled: false   # Disable pod monitor since we're disabling CRD installation
   configData:
     # minimal memory use for bookkeeper
     # https://bookkeeper.apache.org/docs/reference/config#db-ledger-storage-settings
@@ -44,6 +48,8 @@ bookkeeper:
 
 broker:
   replicaCount: 1
+  podMonitor:
+    enabled: false
   configData:
     ## Enable `autoSkipNonRecoverableData` since bookkeeper is running
     ## without persistence
@@ -52,3 +58,13 @@ broker:
     managedLedgerDefaultEnsembleSize: "1"
     managedLedgerDefaultWriteQuorum: "1"
     managedLedgerDefaultAckQuorum: "1"
+
+
+autorecovery:
+  podMonitor:
+    enabled: false   # Disable pod monitor since we're disabling CRD installation
+
+proxy:
+  replicaCount: 1
+  podMonitor:
+    enabled: false   # Disable pod monitor since we're disabling CRD installation
