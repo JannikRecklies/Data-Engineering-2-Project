@@ -98,7 +98,7 @@ def process_message(message, bearer_token, producer):
     # Add "tdd" key to the data dictionary
     data["tdd"] = is_repo_tdd
     producer.send(json.dumps(data).encode('utf-8'))
-    logging.info(f"The repository {repo_name} follows TDD: {is_repo_tdd}")
+    # logging.info(f"The repository {repo_name} follows TDD: {is_repo_tdd}")
 
 
 

@@ -24,6 +24,6 @@ spec:
         - name: GITHUB_BEARER_TOKEN
           value: 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
         - name: PULSAR_PUSH_TOPIC
-          value: languages-processing
+          value: languages-processing-test
 
 

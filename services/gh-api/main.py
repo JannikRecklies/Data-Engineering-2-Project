@@ -67,8 +67,8 @@ def fetch_repositories_for_past_year(bearer_token, pulsar_producer):
             "X-GitHub-Api-Version": "2022-11-28"
     }
     
-    today = datetime.utcnow().date()
-    one_year_ago = today - timedelta(days=1)
+    today = datetime.now()
+    one_year_ago = today - timedelta(days=365)
     
     current_date = one_year_ago
     i = 0
