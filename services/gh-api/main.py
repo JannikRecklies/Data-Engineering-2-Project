@@ -40,6 +40,7 @@ def get_repositories_meta_data(token, pulsar_broker_url, pulsar_topic):
     # Close the Pulsar client
     client.close()
 
+
 def env_vars_set_correct():
     required_env_vars = [GITHUB_BEARER_TOKEN, PULSAR_BROKER_URL, PULSAR_PUSH_TOPIC]
     missing_vars = [var for var in required_env_vars if not os.getenv(var)]
@@ -48,6 +49,7 @@ def env_vars_set_correct():
             print(f"Error: {var} not found in environment variables.")
         return False
     return True
+
 
 def main():
     if not env_vars_set_correct():
@@ -59,6 +61,7 @@ def main():
     pulsar_push_topic = os.getenv(PULSAR_PUSH_TOPIC)
 
     get_repositories_meta_data(bearer_token, pulsar_broker_url, pulsar_push_topic)
+
 
 if __name__ == "__main__":
     main()
