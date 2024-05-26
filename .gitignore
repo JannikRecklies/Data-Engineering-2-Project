@@ -161,3 +161,4 @@ cython_debug/
 
 # Custom
 pulsar-helm-chart
+openstack-setup/
