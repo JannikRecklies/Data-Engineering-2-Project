@@ -1,8 +1,11 @@
 import os
-import requests
 import json
-import pulsar
 import logging
+import requests
+import zipfile
+import time
+import tempfile
+import pulsar
 
 # Configure logging
 logging.basicConfig(
@@ -24,58 +27,79 @@ PULSAR_SUBSCRIPTION_NAME = "contents-fetcher-sub"
 
 # List of test indicators to check for TDD
 TEST_INDICATORS = [
-    'test', 'tests', 'spec', '__tests__', 'pytest.ini', 'tox.ini', 
-    'jest.config.js', 'karma.conf.js', 'nose.cfg', '.travis.yml', 
-    'circle.yml', 'Jenkinsfile', '.github/workflows'
+    'test'
 ]
-
-def fetch_contents(url, headers):
-    """Fetch the contents of a GitHub repository directory from a given URL."""
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    return []
-
-def is_test_file_or_dir(item):
-    """Check if a given item is a test file or directory."""
-    return any(indicator in item['name'].lower() for indicator in TEST_INDICATORS)
-
-def check_directory(url, headers):
-    """Recursively check a directory for test files or directories."""
-    contents = fetch_contents(url, headers)
-    for item in contents:
-        if is_test_file_or_dir(item):
-            return True
-        if item['type'] == 'dir':
-            if check_directory(item['url'], headers):
-                return True
-    return False
-
-def check_tdd(contents_url, headers):
-    """Check if a repository follows TDD based on its contents."""
-    return check_directory(contents_url, headers)
 
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD."""
     data = json.loads(message.data())
     repo_name = data.get('full_name')
-    contents_url = data.get('contents_url').replace('{+path}', '')
+    archive_url = data.get('archive_url').replace('{archive_format}{/ref}', 'zipball')
 
-    if contents_url:
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"Bearer {bearer_token}",
-            "X-GitHub-Api-Version": "2022-11-28"
-        }
-    else:
-        error_msg = f"Error: No contents_url available for {repo_name}"
+    if not archive_url:
+        error_msg = f"Error: No archive_url available for {repo_name}"
         logging.error(error_msg)
         return
 
-    is_repo_tdd = check_tdd(contents_url, headers)
+    headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "Authorization": f"Bearer {bearer_token}",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+    try:
+        # Download the zip file
+        response = requests.get(archive_url, headers=headers)
+        if response.status_code == 200:
+            # Create a temporary directory
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Define the path to the zip file within the temporary directory
+                zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
+                
+                # Write the zip file to the temporary directory
+                with open(zip_path, 'wb') as zip_file:
+                    zip_file.write(response.content)
+                
+                # Extract the zip file
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(tmpdir)
+
+                # Check for test files or directories
+                is_repo_tdd = False
+                test_files = 0
+                for root, dirs, files in os.walk(tmpdir):
+                    for name in files:
+                        if any(indicator in name.lower() for indicator in TEST_INDICATORS):
+                            test_files += 1
+                        is_repo_tdd = test_files >= 3
+                    for name in dirs:
+                        if any(indicator in name.lower() for indicator in TEST_INDICATORS):
+                            is_repo_tdd = True
+                            break
+                    if is_repo_tdd:
+                        break
+        elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+            reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+            wait_time_sec = max(reset_time - time.time(), 1)
+            wait_time_min = wait_time_sec / 60
+            logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min} minutes.")
+            time.sleep(wait_time_sec)
+        else:
+            logging.error("Error fetching data")
+            raise Exception(f"Error fetching data: {response.json()}")
+
+    except Exception as e:
+        error_msg = f"Error processing repository {repo_name}: {str(e)}"
+        logging.error(error_msg)
+        data["error"] = error_msg
+        # producer.send(json.dumps(data).encode('utf-8'))
+        return
+
+    # Add "tdd" key to the data dictionary
     data["tdd"] = is_repo_tdd
     producer.send(json.dumps(data).encode('utf-8'))
     logging.info(f"The repository {repo_name} follows TDD: {is_repo_tdd}")
+
 
 
 def env_vars_set_correct():
@@ -92,7 +116,7 @@ def main():
     """Main function to run the Pulsar consumer."""
     logging.info("Starting application")
     if not env_vars_set_correct():
-        print("Environment variables are missing or not set properly")
+        logging.error("Environment variables are missing or not set properly")
         return
 
     bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
@@ -107,7 +131,7 @@ def main():
         consumer_type=pulsar.ConsumerType.Shared
     )
     producer = client.create_producer(pulsar_push_topic)
-    
+
     try:
         while True:
             msg = consumer.receive()

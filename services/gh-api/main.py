@@ -19,28 +19,31 @@ GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
 PULSAR_BROKER_URL = "PULSAR_BROKER_URL"
 PULSAR_PUSH_TOPIC = "PULSAR_PUSH_TOPIC"
 
-GITHUB_REPOS_URL = "https://api.github.com/repositories"
+GITHUB_REPOS_URL = "https://api.github.com/search/repositories"
 GITHUB_REPOS_PER_PAGE = 1000
 
 # Helper function to fetch repositories for a specific date
 def fetch_repositories_for_date(date, headers, pulsar_producer):
     page = 1
     while True:
-        query = f"q=created:{date}..{date}&sort=updated&order=desc&per_page={GITHUB_REPOS_PER_PAGE}&page={page}"
+        logging.info(f"Fetching {GITHUB_REPOS_PER_PAGE} repositories per page")
+        query = f"q=created:{date}&sort=updated&order=desc&per_page={GITHUB_REPOS_PER_PAGE}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
         if response.status_code == 200:
-            repo_info = {}
             
             data = response.json()
-            for repo in data:
+            for repo in data["items"]:
+                repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
-                repo_info["contents_url"] = repo["contents_url"]
-                # print("producing:", json.dumps(repo))
+                repo_info["archive_url"] = repo["archive_url"]
+                # logging.info("producing: " + json.dumps(repo_info))
                 pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
             
+            
             if 'next' not in response.links:
+                logging.info(f"Fetched all pages for a day")
                 break
             
             page += 1
