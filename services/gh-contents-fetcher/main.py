@@ -46,25 +46,25 @@ def process_message(message, bearer_token, producer):
         return
 
     headers = {
-        "Accept": "application/vnd.github.v3+json",
         "Authorization": f"Bearer {bearer_token}",
         "X-GitHub-Api-Version": "2022-11-28"
     }
 
     try:
-        #logging.info(f"Starting archieve_url request")
+        logging.info(f"Starting archieve_url request: {archive_url}")
         response = requests.get(archive_url, headers=headers)
+        logging.info(f"Response for request")
         if response.status_code == 200:
             logging.info(f"Response 200")
             with tempfile.TemporaryDirectory() as tmpdir:
-                #logging.info(f"Starting to work with downloaded project")
+                logging.info(f"Starting to work with downloaded project")
                 zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
                 with open(zip_path, 'wb') as zip_file:
                     zip_file.write(response.content)
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(tmpdir)
                 
-                #logging.info(f"Checking for tdd and devops")
+                logging.info(f"Checking for tdd and devops")
                 is_repo_tdd = check_for_tdd(tmpdir)
                 is_repo_devops = check_for_devops(tmpdir)
                 data["tdd"] = is_repo_tdd
