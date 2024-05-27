@@ -20,6 +20,6 @@ spec:
         - name: PULSAR_BROKER_URL
           value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
         - name: PULSAR_PUSH_TOPIC
-          value: languages-processing-test
+          value: languages-processing-test-1
       restartPolicy: Never
   backoffLimit: 4  # Number of retries before considering the Job as failed

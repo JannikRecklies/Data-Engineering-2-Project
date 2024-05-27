@@ -38,11 +38,11 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
             for repo in repsoitories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
+                repo_info["default_branch"] = repo["default_branch"]
+                repo_info["trees_url"] = repo["trees_url"]
                 repo_info["size"] = repo["size"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
-                repo_info["contents_url"] = repo["contents_url"]
-                repo_info["archive_url"] = repo["archive_url"]
                 # logging.info("producing: " + json.dumps(repo_info))
                 pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
             

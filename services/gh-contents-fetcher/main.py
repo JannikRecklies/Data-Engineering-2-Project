@@ -17,6 +17,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+GITHUB_API_SEARCH_URL = "https://api.github.com/repos"
+
 # Constants for environment variables
 GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
 PULSAR_BROKER_URL = "PULSAR_BROKER_URL"
@@ -39,15 +41,13 @@ DEVOPS_INDICATORS = [
     'azure-pipelines.yml'
 ]
 
+
+##################################### Main Functions #####################################
+
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD."""
     data = json.loads(message.data())
-    archive_url = data.get('archive_url', '').replace('{archive_format}{/ref}', 'zipball')
-    contents_url = data.get('contents_url').replace('{+path}', '')
-    
-    if not archive_url or not contents_url:
-        logging.error(f"Error: No archive_url or contents_url available for {data.get('full_name')}")
-        return
+    trees_urls = data.get('trees_url', '').replace('{/sha}', f"/{data.get('default_branch')}")
 
     headers = {
         "Accept": "application/vnd.github.v3+json",
@@ -56,86 +56,27 @@ def process_message(message, bearer_token, producer):
     }
     
     try:
-        logging.info(f"Size: {data.get('size')}")
-        process_archive_url(archive_url, headers, data, producer)
-    except TimeoutError:
-        logging.warn(f"Request to {archive_url} timed out.")
-        process_contents_url(contents_url)
+        
+        # logging.info(f"Data: {data}")
+        full_name = data["full_name"]
+        # logging.info(f"Name: {full_name}")
+        # logging.info(f"trees_urls: {data.get('trees_url')}")
+        
+        request_url = f"{trees_urls}?recursive=1"
+        # logging.info(f"URL: {request_url}")
+        response = requests.get(request_url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            files = data["tree"]
+            # logging.info(f"Length: {len(files)}")
+        elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+            handle_rate_limit(response)
+        else:
+            logging.error("Error fetching data")
+            raise Exception(f"Error fetching data: {response.content}")
+    
     except Exception as e:
         logging.error(f"Error processing repository {data.get('full_name')}: {str(e)}")
-        return
-
-def process_contents_url(contents_url):
-    logging.info(f"(Not yet implemented) Starting contents_url request: {contents_url}")
-    return
-
-def request_archive(archive_url, headers):
-    response = requests.get(archive_url, headers=headers)
-    return response
-    
-def process_archive_url(archive_url, headers, data, producer):
-    logging.info(f"Starting archieve_url request: {archive_url}")
-    with ThreadPoolExecutor() as executor:
-        future = executor.submit(request_archive, archive_url, headers)
-        response = future.result(timeout=5)
-
-    # logging.info(f"Response for request")
-    if response.status_code == 200:
-        # logging.info(f"Response 200")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # logging.info(f"Starting to work with downloaded project")
-            repo_name = data.get('full_name')
-            zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
-            with open(zip_path, 'wb') as zip_file:
-                zip_file.write(response.content)
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(tmpdir)
-            
-            # logging.info(f"Checking for tdd and devops")
-            is_repo_tdd = check_for_tdd(tmpdir)
-            is_repo_devops = check_for_devops(tmpdir)
-            data["tdd"] = is_repo_tdd
-            data["devops"] = is_repo_devops
-            producer.send(json.dumps(data).encode('utf-8'))
-            logging.info(f"The repository {repo_name} follows TDD ({is_repo_tdd}) and devops ({is_repo_devops})")
-    elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
-        handle_rate_limit(response)
-    else:
-        logging.error("Error fetching data")
-        raise Exception(f"Error fetching data: {response.json()}")
-
-def check_for_tdd(directory):
-    """Check for test files or directories to determine if the repository follows TDD."""
-    test_files = 0
-    for root, dirs, files in os.walk(directory):
-        for name in files:
-            if any(indicator in name.lower() for indicator in TEST_INDICATORS):
-                test_files += 1
-        if test_files >= 3:
-            return True
-        for name in dirs:
-            if any(indicator in name.lower() for indicator in TEST_INDICATORS):
-                return True
-    return False
-
-def check_for_devops(directory):
-    """Check for CI/CD configuration files to determine if the repository follows DevOps practices."""
-    for root, dirs, files in os.walk(directory):
-        for name in files:
-            if any(indicator in os.path.join(root, name).lower() for indicator in DEVOPS_INDICATORS):
-                return True
-        for name in dirs:
-            if any(indicator in os.path.join(root, name).lower() for indicator in DEVOPS_INDICATORS):
-                return True
-    return False
-
-def handle_rate_limit(response):
-    """Handle GitHub API rate limiting."""
-    reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
-    wait_time_sec = max(reset_time - time.time(), 1)
-    wait_time_min = wait_time_sec / 60
-    logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
-    time.sleep(wait_time_sec)
 
 def env_vars_set_correct():
     """Check if the required environment variables are set."""
@@ -146,6 +87,14 @@ def env_vars_set_correct():
             logging.error(f"Error: {var} not found in environment variables.")
         return False
     return True
+
+def handle_rate_limit(response):
+    """Handle GitHub API rate limiting."""
+    reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+    wait_time_sec = max(reset_time - time.time(), 1)
+    wait_time_min = wait_time_sec / 60
+    logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
+    time.sleep(wait_time_sec)
 
 def main():
     """Main function to run the Pulsar consumer."""
@@ -174,6 +123,7 @@ def main():
                 # logging.info("Message received")
                 process_message(msg, bearer_token, producer)
                 consumer.acknowledge(msg)
+                # logging.info("Acked messaged")
             except Exception as e:
                 logging.error(f"Failed to process message: {e}")
                 consumer.negative_acknowledge(msg)
