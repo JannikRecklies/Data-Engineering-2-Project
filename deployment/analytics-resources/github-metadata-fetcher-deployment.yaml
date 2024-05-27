@@ -1,14 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: github-metadata-fetcher
-  labels:
-    app: github-metadata-fetcher
 spec:
-  replicas: 1 # not scalable currently
-  selector:
-    matchLabels:
-      app: github-metadata-fetcher
   template:
     metadata:
       labels:
@@ -25,5 +19,5 @@ spec:
           value: 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
         - name: PULSAR_PUSH_TOPIC
           value: languages-processing-test
-
-
+      restartPolicy: Never
+  backoffLimit: 4  # Number of retries before considering the Job as failed
