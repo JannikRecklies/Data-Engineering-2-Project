@@ -13,6 +13,13 @@ from client import PulsarProducer
 #     "contents_url": ""
 # }, ...]
 
+def GetNextPageUrl(headers, next_page_str):
+    if "Link" in headers:
+        for link in headers["Link"].split(','):
+            if next_page_str in link:
+                return link.split(';')[0].strip().strip('<>')
+    return None
+
 def MakeRequest(token, producers, gh_url="https://api.github.com/", repos_per_page=50):
     one_year_ago = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y-%m-%d")
     print("starting to fetch repositories from (date): {}\n\n".format(one_year_ago))
@@ -29,13 +36,7 @@ def MakeRequest(token, producers, gh_url="https://api.github.com/", repos_per_pa
         if response.status_code == 200:
             data = response.json()
             GetRepositoriesMetaData(data, producers)
-            for link in response.headers["Link"].split(','):
-                if next_page_str in link:
-                    link_parts = link.split(';')
-                    for part in link_parts:
-                        if next_page_str not in part:
-                            # time to remove the < and > sign
-                            url = part.replace("<", "").replace(">", "")
+            url = GetNextPageUrl(response.headers, next_page_str)
         elif response.status_code == 422:
             print("endpoint spammed, time to take a break\n\n")
             time.sleep(300) # 5 minutes
