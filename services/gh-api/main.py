@@ -104,6 +104,7 @@ def main():
     
     fetch_repositories_for_past_year(bearer_token, producer)
     
+    logging.info("All repositories for the last year fetched. Closing client.")
     client.close()
 
 if __name__ == "__main__":

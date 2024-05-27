@@ -91,7 +91,7 @@ def process_message(message, bearer_token, producer):
     except Exception as e:
         error_msg = f"Error processing repository {repo_name}: {str(e)}"
         logging.error(error_msg)
-        data["error"] = error_msg
+        # data["error"] = error_msg
         # producer.send(json.dumps(data).encode('utf-8'))
         return
 
@@ -142,6 +142,7 @@ def main():
                 logging.error(f"Failed to process message: {e}")
                 consumer.negative_acknowledge(msg)
     finally:
+        logging.info("Closing client")
         client.close()
 
 if __name__ == "__main__":
