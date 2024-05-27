@@ -13,9 +13,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-# sudo docker build -t jannikrecklies/gh-tdd-processor:latest .
-# sudo docker push jannikrecklies/gh-tdd-processor:latest
-
 # Constants for environment variables
 GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
 PULSAR_BROKER_URL = "PULSAR_BROKER_URL"
@@ -26,19 +23,26 @@ PULSAR_PUSH_TOPIC = "PULSAR_PUSH_TOPIC"
 PULSAR_SUBSCRIPTION_NAME = "contents-fetcher-sub"
 
 # List of test indicators to check for TDD
-TEST_INDICATORS = [
-    'test'
+TEST_INDICATORS = ['test']
+
+# List of DevOps indicators to check for CI/CD practices
+DEVOPS_INDICATORS = [
+    '.travis.yml',
+    'circle.yml',
+    '.github/workflows/',
+    '.gitlab-ci.yml',
+    'Jenkinsfile',
+    'azure-pipelines.yml'
 ]
 
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD."""
     data = json.loads(message.data())
     repo_name = data.get('full_name')
-    archive_url = data.get('archive_url').replace('{archive_format}{/ref}', 'zipball')
+    archive_url = data.get('archive_url', '').replace('{archive_format}{/ref}', 'zipball')
 
     if not archive_url:
-        error_msg = f"Error: No archive_url available for {repo_name}"
-        logging.error(error_msg)
+        logging.error(f"Error: No archive_url available for {repo_name}")
         return
 
     headers = {
@@ -48,59 +52,68 @@ def process_message(message, bearer_token, producer):
     }
 
     try:
-        # Download the zip file
+        #logging.info(f"Starting archieve_url request")
         response = requests.get(archive_url, headers=headers)
         if response.status_code == 200:
-            # Create a temporary directory
+            logging.info(f"Response 200")
             with tempfile.TemporaryDirectory() as tmpdir:
-                # Define the path to the zip file within the temporary directory
+                #logging.info(f"Starting to work with downloaded project")
                 zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
-                
-                # Write the zip file to the temporary directory
                 with open(zip_path, 'wb') as zip_file:
                     zip_file.write(response.content)
-                
-                # Extract the zip file
                 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                     zip_ref.extractall(tmpdir)
+                
+                #logging.info(f"Checking for tdd and devops")
+                is_repo_tdd = check_for_tdd(tmpdir)
+                is_repo_devops = check_for_devops(tmpdir)
+                data["tdd"] = is_repo_tdd
+                data["devops"] = is_repo_devops
+                producer.send(json.dumps(data).encode('utf-8'))
+                logging.info(f"The repository {repo_name} follows TDD ({is_repo_tdd}) and devops ({is_repo_devops})")
 
-                # Check for test files or directories
-                is_repo_tdd = False
-                test_files = 0
-                for root, dirs, files in os.walk(tmpdir):
-                    for name in files:
-                        if any(indicator in name.lower() for indicator in TEST_INDICATORS):
-                            test_files += 1
-                        is_repo_tdd = test_files >= 3
-                    for name in dirs:
-                        if any(indicator in name.lower() for indicator in TEST_INDICATORS):
-                            is_repo_tdd = True
-                            break
-                    if is_repo_tdd:
-                        break
         elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
-            reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
-            wait_time_sec = max(reset_time - time.time(), 1)
-            wait_time_min = wait_time_sec / 60
-            logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min} minutes.")
-            time.sleep(wait_time_sec)
+            handle_rate_limit(response)
         else:
             logging.error("Error fetching data")
             raise Exception(f"Error fetching data: {response.json()}")
 
     except Exception as e:
-        error_msg = f"Error processing repository {repo_name}: {str(e)}"
-        logging.error(error_msg)
-        # data["error"] = error_msg
-        # producer.send(json.dumps(data).encode('utf-8'))
+        logging.error(f"Error processing repository {repo_name}: {str(e)}")
         return
 
-    # Add "tdd" key to the data dictionary
-    data["tdd"] = is_repo_tdd
-    producer.send(json.dumps(data).encode('utf-8'))
-    # logging.info(f"The repository {repo_name} follows TDD: {is_repo_tdd}")
+def check_for_tdd(directory):
+    """Check for test files or directories to determine if the repository follows TDD."""
+    test_files = 0
+    for root, dirs, files in os.walk(directory):
+        for name in files:
+            if any(indicator in name.lower() for indicator in TEST_INDICATORS):
+                test_files += 1
+        if test_files >= 3:
+            return True
+        for name in dirs:
+            if any(indicator in name.lower() for indicator in TEST_INDICATORS):
+                return True
+    return False
 
+def check_for_devops(directory):
+    """Check for CI/CD configuration files to determine if the repository follows DevOps practices."""
+    for root, dirs, files in os.walk(directory):
+        for name in files:
+            if any(indicator in os.path.join(root, name).lower() for indicator in DEVOPS_INDICATORS):
+                return True
+        for name in dirs:
+            if any(indicator in os.path.join(root, name).lower() for indicator in DEVOPS_INDICATORS):
+                return True
+    return False
 
+def handle_rate_limit(response):
+    """Handle GitHub API rate limiting."""
+    reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+    wait_time_sec = max(reset_time - time.time(), 1)
+    wait_time_min = wait_time_sec / 60
+    logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
+    time.sleep(wait_time_sec)
 
 def env_vars_set_correct():
     """Check if the required environment variables are set."""
@@ -136,6 +149,7 @@ def main():
         while True:
             msg = consumer.receive()
             try:
+                logging.info("Message received")
                 process_message(msg, bearer_token, producer)
                 consumer.acknowledge(msg)
             except Exception as e:

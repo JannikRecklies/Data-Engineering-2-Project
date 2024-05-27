@@ -26,13 +26,16 @@ GITHUB_REPOS_PER_PAGE = 1000
 def fetch_repositories_for_date(date, headers, pulsar_producer):
     page = 1
     while True:
-        logging.info(f"Fetching {GITHUB_REPOS_PER_PAGE} repositories per page")
+        #logging.info(f"Fetching {GITHUB_REPOS_PER_PAGE} repositories per page")
         query = f"q=created:{date}&sort=updated&order=desc&per_page={GITHUB_REPOS_PER_PAGE}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
         if response.status_code == 200:
             
             data = response.json()
-            for repo in data["items"]:
+            repsoitories = data["items"]
+            logging.info(f"Request url: {response.request.url}")
+            #logging.info(f"Received github repos of length: {len(repsoitories)}")
+            for repo in repsoitories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
                 repo_info["languages_url"] = repo["languages_url"]
@@ -73,8 +76,9 @@ def fetch_repositories_for_past_year(bearer_token, pulsar_producer):
     current_date = one_year_ago
     i = 0
     while current_date <= today:
-        logging.info(f"Fetching repositories for date: {current_date}; (Progress: {i}/365)")
-        fetch_repositories_for_date(current_date, headers, pulsar_producer)
+        formatted_date = current_date.strftime('%Y-%m-%d')
+        logging.info(f"Fetching repositories for date: {formatted_date}; (Progress: {i}/365)")
+        fetch_repositories_for_date(formatted_date, headers, pulsar_producer)
         current_date += timedelta(days=1)
         i = i + 1
         time.sleep(5)  # Respect rate limits with a delay between requests
