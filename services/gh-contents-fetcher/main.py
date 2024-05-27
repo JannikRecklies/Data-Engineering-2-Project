@@ -6,6 +6,7 @@ import zipfile
 import time
 import tempfile
 import pulsar
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 
 # sudo docker build -t jannikrecklies/gh-tdd-devops-processor:latest .
 # sudo docker push jannikrecklies/gh-tdd-devops-processor:latest
@@ -55,10 +56,11 @@ def process_message(message, bearer_token, producer):
     }
     
     try:
-        if int(data.get('size')) < 1000:
-            process_archive_url(archive_url, headers, data, producer)
-        else:
-            process_contents_url()
+        logging.info(f"Size: {data.get('size')}")
+        process_archive_url(archive_url, headers, data, producer)
+    except TimeoutError:
+        logging.warn(f"Request to {archive_url} timed out.")
+        process_contents_url(contents_url)
     except Exception as e:
         logging.error(f"Error processing repository {data.get('full_name')}: {str(e)}")
         return
@@ -67,9 +69,16 @@ def process_contents_url(contents_url):
     logging.info(f"(Not yet implemented) Starting contents_url request: {contents_url}")
     return
 
+def request_archive(archive_url, headers):
+    response = requests.get(archive_url, headers=headers)
+    return response
+    
 def process_archive_url(archive_url, headers, data, producer):
     logging.info(f"Starting archieve_url request: {archive_url}")
-    response = requests.get(archive_url, headers=headers)
+    with ThreadPoolExecutor() as executor:
+        future = executor.submit(request_archive, archive_url, headers)
+        response = future.result(timeout=5)
+
     # logging.info(f"Response for request")
     if response.status_code == 200:
         # logging.info(f"Response 200")
