@@ -13,10 +13,12 @@ spec:
         image: jannikrecklies/gh-metadata-fetcher:latest  # Replace with your Docker image name
         imagePullPolicy: Always
         env:
-        - name: PULSAR_BROKER_URL
-          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
         - name: GITHUB_BEARER_TOKEN
           value: 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
+        - name: GITHUB_REPOS_PER_FETCH
+          value: "1000"
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
         - name: PULSAR_PUSH_TOPIC
           value: languages-processing-test
       restartPolicy: Never

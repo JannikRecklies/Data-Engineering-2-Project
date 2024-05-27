@@ -15,19 +15,19 @@ logging.basicConfig(
 # sudo docker build -t jannikrecklies/gh-metadata-fetcher:latest .
 # sudo docker push jannikrecklies/gh-metadata-fetcher:latest
 
-GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
 PULSAR_BROKER_URL = "PULSAR_BROKER_URL"
 PULSAR_PUSH_TOPIC = "PULSAR_PUSH_TOPIC"
 
 GITHUB_REPOS_URL = "https://api.github.com/search/repositories"
-GITHUB_REPOS_PER_PAGE = 1000
+GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
+GITHUB_REPOS_PER_FETCH = "GITHUB_REPOS_PER_FETCH"
 
 # Helper function to fetch repositories for a specific date
-def fetch_repositories_for_date(date, headers, pulsar_producer):
+def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_producer):
     page = 1
     while True:
         #logging.info(f"Fetching {GITHUB_REPOS_PER_PAGE} repositories per page")
-        query = f"q=created:{date}&sort=updated&order=desc&per_page={GITHUB_REPOS_PER_PAGE}&page={page}"
+        query = f"q=created:{date}&sort=updated&order=desc&per_page={github_repos_per_fetch}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
         if response.status_code == 200:
             
@@ -38,8 +38,10 @@ def fetch_repositories_for_date(date, headers, pulsar_producer):
             for repo in repsoitories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
+                repo_info["size"] = repo["size"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
+                repo_info["contents_url"] = repo["contents_url"]
                 repo_info["archive_url"] = repo["archive_url"]
                 # logging.info("producing: " + json.dumps(repo_info))
                 pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
@@ -63,7 +65,7 @@ def fetch_repositories_for_date(date, headers, pulsar_producer):
     
 
 # Function to fetch repositories for the past year
-def fetch_repositories_for_past_year(bearer_token, pulsar_producer):
+def fetch_repositories_for_past_year(bearer_token, github_repos_per_fetch, pulsar_producer):
     headers = {
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"Bearer {bearer_token}",
@@ -78,14 +80,14 @@ def fetch_repositories_for_past_year(bearer_token, pulsar_producer):
     while current_date <= today:
         formatted_date = current_date.strftime('%Y-%m-%d')
         logging.info(f"Fetching repositories for date: {formatted_date}; (Progress: {i}/365)")
-        fetch_repositories_for_date(formatted_date, headers, pulsar_producer)
+        fetch_repositories_for_date(formatted_date, headers, github_repos_per_fetch, pulsar_producer)
         current_date += timedelta(days=1)
         i = i + 1
         time.sleep(5)  # Respect rate limits with a delay between requests
     
 
 def env_vars_set_correct():
-    required_env_vars = [GITHUB_BEARER_TOKEN, PULSAR_BROKER_URL, PULSAR_PUSH_TOPIC]
+    required_env_vars = [GITHUB_BEARER_TOKEN, PULSAR_BROKER_URL, PULSAR_PUSH_TOPIC, GITHUB_REPOS_PER_FETCH]
     missing_vars = [var for var in required_env_vars if not os.getenv(var)]
     if missing_vars:
         for var in missing_vars:
@@ -99,14 +101,16 @@ def main():
         logging.error("Environment variables are missing or not set properly")
         return
 
-    bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
     pulsar_broker_url = os.getenv(PULSAR_BROKER_URL)
     pulsar_push_topic = os.getenv(PULSAR_PUSH_TOPIC)
+    
+    bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
+    github_repos_per_fetch = os.getenv(GITHUB_REPOS_PER_FETCH)
 
     client = pulsar.Client(pulsar_broker_url)
     producer = client.create_producer(pulsar_push_topic)
     
-    fetch_repositories_for_past_year(bearer_token, producer)
+    fetch_repositories_for_past_year(bearer_token, github_repos_per_fetch, producer)
     
     logging.info("All repositories for the last year fetched. Closing client.")
     client.close()

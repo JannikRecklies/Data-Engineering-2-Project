@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: github-tdd-processor
+  name: github-tdd-devops-processor
   labels:
-    app: github-tdd-processor
+    app: github-tdd-devops-processor
 spec:
   replicas: 1 # not scalable currently
   selector:
     matchLabels:
-      app: github-tdd-processor
+      app: github-tdd-devops-processor
   template:
     metadata:
       labels:
-        app: github-tdd-processor
+        app: github-tdd-devops-processor
     spec:
       containers:
-      - name: github-metadata-fetcher
-        image: jannikrecklies/gh-tdd-processor:latest  # Replace with your Docker image name
+      - name: github-tdd-devops-processor
+        image: jannikrecklies/gh-tdd-devops-processor:latest  # Replace with your Docker image name
         imagePullPolicy: Always
         env:
         - name: PULSAR_BROKER_URL
@@ -27,5 +27,6 @@ spec:
           value: languages-processing-test
         - name: PULSAR_PUSH_TOPIC
           value: languages-tdd
+
 
 

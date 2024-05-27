@@ -7,6 +7,9 @@ import time
 import tempfile
 import pulsar
 
+# sudo docker build -t jannikrecklies/gh-tdd-devops-processor:latest .
+# sudo docker push jannikrecklies/gh-tdd-devops-processor:latest
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Set the logging level to INFO
@@ -38,49 +41,59 @@ DEVOPS_INDICATORS = [
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD."""
     data = json.loads(message.data())
-    repo_name = data.get('full_name')
     archive_url = data.get('archive_url', '').replace('{archive_format}{/ref}', 'zipball')
-
-    if not archive_url:
-        logging.error(f"Error: No archive_url available for {repo_name}")
+    contents_url = data.get('contents_url').replace('{+path}', '')
+    
+    if not archive_url or not contents_url:
+        logging.error(f"Error: No archive_url or contents_url available for {data.get('full_name')}")
         return
 
     headers = {
+        "Accept": "application/vnd.github.v3+json",
         "Authorization": f"Bearer {bearer_token}",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-
+    
     try:
-        logging.info(f"Starting archieve_url request: {archive_url}")
-        response = requests.get(archive_url, headers=headers)
-        logging.info(f"Response for request")
-        if response.status_code == 200:
-            logging.info(f"Response 200")
-            with tempfile.TemporaryDirectory() as tmpdir:
-                logging.info(f"Starting to work with downloaded project")
-                zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
-                with open(zip_path, 'wb') as zip_file:
-                    zip_file.write(response.content)
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(tmpdir)
-                
-                logging.info(f"Checking for tdd and devops")
-                is_repo_tdd = check_for_tdd(tmpdir)
-                is_repo_devops = check_for_devops(tmpdir)
-                data["tdd"] = is_repo_tdd
-                data["devops"] = is_repo_devops
-                producer.send(json.dumps(data).encode('utf-8'))
-                logging.info(f"The repository {repo_name} follows TDD ({is_repo_tdd}) and devops ({is_repo_devops})")
-
-        elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
-            handle_rate_limit(response)
+        if int(data.get('size')) < 1000:
+            process_archive_url(archive_url, headers, data, producer)
         else:
-            logging.error("Error fetching data")
-            raise Exception(f"Error fetching data: {response.json()}")
-
+            process_contents_url()
     except Exception as e:
-        logging.error(f"Error processing repository {repo_name}: {str(e)}")
+        logging.error(f"Error processing repository {data.get('full_name')}: {str(e)}")
         return
+
+def process_contents_url(contents_url):
+    logging.info(f"(Not yet implemented) Starting contents_url request: {contents_url}")
+    return
+
+def process_archive_url(archive_url, headers, data, producer):
+    logging.info(f"Starting archieve_url request: {archive_url}")
+    response = requests.get(archive_url, headers=headers)
+    # logging.info(f"Response for request")
+    if response.status_code == 200:
+        # logging.info(f"Response 200")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # logging.info(f"Starting to work with downloaded project")
+            repo_name = data.get('full_name')
+            zip_path = os.path.join(tmpdir, f"{repo_name.replace('/', '_')}.zip")
+            with open(zip_path, 'wb') as zip_file:
+                zip_file.write(response.content)
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(tmpdir)
+            
+            # logging.info(f"Checking for tdd and devops")
+            is_repo_tdd = check_for_tdd(tmpdir)
+            is_repo_devops = check_for_devops(tmpdir)
+            data["tdd"] = is_repo_tdd
+            data["devops"] = is_repo_devops
+            producer.send(json.dumps(data).encode('utf-8'))
+            logging.info(f"The repository {repo_name} follows TDD ({is_repo_tdd}) and devops ({is_repo_devops})")
+    elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+        handle_rate_limit(response)
+    else:
+        logging.error("Error fetching data")
+        raise Exception(f"Error fetching data: {response.json()}")
 
 def check_for_tdd(directory):
     """Check for test files or directories to determine if the repository follows TDD."""
@@ -149,7 +162,7 @@ def main():
         while True:
             msg = consumer.receive()
             try:
-                logging.info("Message received")
+                # logging.info("Message received")
                 process_message(msg, bearer_token, producer)
                 consumer.acknowledge(msg)
             except Exception as e:
