@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: github-metadata-fetcher
+spec:
+  template:
+    metadata:
+      labels:
+        app: github-metadata-fetcher
+    spec:
+      containers:
+      - name: github-metadata-fetcher
+        image: jannikrecklies/gh-metadata-fetcher:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: GITHUB_REPOS_PER_FETCH
+          value: "1000"
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: PULSAR_PUSH_TOPIC
+          value: languages-processing-test-1
+      restartPolicy: Never
+  backoffLimit: 1  # Number of retries before considering the Job as failed
