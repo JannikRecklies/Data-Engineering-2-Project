@@ -22,7 +22,9 @@ spec:
           value: "1000"
         - name: PULSAR_BROKER_URL
           value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
-        - name: PULSAR_PUSH_TOPIC
-          value: languages-processing-test-1
+        - name: PULSAR_PUSH_TOPIC1
+          value: languages-processing
+        - name: PULSAR_PUSH_TOPIC2
+          value: commits-processing
       restartPolicy: Never
   backoffLimit: 1  # Number of retries before considering the Job as failed

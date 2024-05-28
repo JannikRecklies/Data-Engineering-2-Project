@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-langs-processor
+  labels:
+    app: github-langs-processor
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-langs-processor
+  template:
+    metadata:
+      labels:
+        app: github-langs-processor
+    spec:
+      containers:
+      - name: github-langs-processor
+        image: jannikrecklies/gh-langs-fetcher:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_EP
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: PULSAR_PULL_TOPIC
+          value: languages-processing
+        - name: PULSAR_PUSH_TOPIC
+          value: tdd-devops-processing
+        - name: PULSAR_SUBSCRIPTION
+          value: gh_obj_subscription
+
+
+

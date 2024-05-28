@@ -5,8 +5,7 @@ import time
 import pulsar
 from datetime import datetime, timedelta
 import logging
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PulsarClient')))
-from client import PulsarProducer
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -49,11 +48,12 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
                 repo_info["trees_url"] = repo["trees_url"]
+                repo_info["default_branch"] = repo["default_branch"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
                 # logging.info("producing: " + json.dumps(repo_info))
                 for producer in pulsar_producers:
-                  producer.Produce(json.dumps(repo_info))
+                    producer.send(json.dumps(repo_info).encode('utf-8'))
 
 
             if 'next' not in response.links:
@@ -117,13 +117,14 @@ def main():
     bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
     github_repos_per_fetch = os.getenv(GITHUB_REPOS_PER_FETCH)
 
-    producer1 = PulsarProducer(pulsar_broker_url, pulsar_push_topic1)
-    producer2 = PulsarProducer(pulsar_broker_url, pulsar_push_topic2)
+    client = pulsar.Client(pulsar_broker_url)
+    producer1 = client.create_producer(pulsar_push_topic1)
+    producer2 = client.create_producer(pulsar_push_topic2)
 
     fetch_repositories_for_past_year(bearer_token, github_repos_per_fetch, [producer1, producer2])
 
     logging.info("All repositories for the last year fetched. Closing client.")
-    client.close()
+    # client.close()
 
 
 if __name__ == "__main__":
