@@ -14,7 +14,10 @@ spec:
         imagePullPolicy: Always
         env:
         - name: GITHUB_BEARER_TOKEN
-          value: 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
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
         - name: GITHUB_REPOS_PER_FETCH
           value: "1000"
         - name: PULSAR_BROKER_URL
@@ -22,4 +25,4 @@ spec:
         - name: PULSAR_PUSH_TOPIC
           value: languages-processing-test-1
       restartPolicy: Never
-  backoffLimit: 4  # Number of retries before considering the Job as failed
+  backoffLimit: 1  # Number of retries before considering the Job as failed

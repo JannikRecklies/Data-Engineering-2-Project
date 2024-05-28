@@ -22,7 +22,10 @@ spec:
         - name: PULSAR_BROKER_URL
           value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
         - name: GITHUB_BEARER_TOKEN
-          value: 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
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
         - name: PULSAR_PULL_TOPIC
           value: languages-processing-test-1
         - name: PULSAR_PUSH_TOPIC
