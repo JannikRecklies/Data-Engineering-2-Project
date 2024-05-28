@@ -69,8 +69,8 @@ def process_message(message, bearer_token, producer):
         logging.info(f"Repo to be processed: {full_name}")
         response = requests.get(request_url, headers=headers)
         if response.status_code == 200:
-            data = response.json()
-            files = data["tree"]
+            tree_data = response.json()
+            files = tree_data["tree"]
             
             # Check for TDD files
             tdd_files_found = check_for_tdd_indicators(files)
@@ -90,7 +90,7 @@ def process_message(message, bearer_token, producer):
             process_message(message, bearer_token, producer)
         else:
             logging.error("Error fetching additional data")
-            raise Exception(f"Error fetching data: {response.content}")
+            raise Exception(f"Error fetching data. Response: {response.content}")
     
     except Exception as e:
         logging.error(f"Error processing message: {data}")
