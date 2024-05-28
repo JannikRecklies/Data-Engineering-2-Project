@@ -15,7 +15,8 @@ class PulsarConsumer(PulsarClient):
     def __init__(self, pulsar_ep, topic, sub_name):
         PulsarClient.__init__(self, pulsar_ep)
         self.Subscribe(topic, sub_name)
-    
+
+
     def __init__(self, pulsar_ep, topic, sub_name, sub_consumer_type):
         PulsarClient.__init__(self, pulsar_ep)
         self.Subscribe(topic, sub_name, sub_consumer_type)
@@ -36,7 +37,6 @@ class PulsarConsumer(PulsarClient):
 
     def Subscribe(self, topic, sub_name, sub_consumer_type):
         self.subscription = self.client.subscribe(topic, subscription_name=sub_name, consumer_type=sub_consumer_type)
-    
 
 
 
@@ -53,6 +53,4 @@ class PulsarProducer(PulsarClient):
     def Produce(self, msg, encoding='utf-8'):
         self.producer.send((msg).encode(encoding))
         logging.info("msg: {}\nsent!".format(msg))
-
-
 
