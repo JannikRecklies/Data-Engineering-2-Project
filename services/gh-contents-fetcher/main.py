@@ -17,7 +17,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-GITHUB_API_SEARCH_URL = "https://api.github.com/repos"
+GITHUB_API_SEARCH_URL = "https://api.github.com/repos" # 5,000 requests per hour
 
 # Constants for environment variables
 GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
@@ -42,13 +42,20 @@ DEVOPS_INDICATORS = [
 ]
 
 
-##################################### Main Functions #####################################
+def check_for_devops_indicators(files):
+    """Check if any of the files match the indicators."""
+    return any(indicator in file["path"] for file in files for indicator in DEVOPS_INDICATORS)
+
+def check_for_tdd_indicators(files):
+    """Check if the number of files matching the indicators is greater than 3."""
+    match_count = sum(1 for file in files if any(indicator in file["path"] for indicator in DEVOPS_INDICATORS))
+    return match_count > 3
 
 def process_message(message, bearer_token, producer):
-    """Process a received message and determine if the repository follows TDD."""
+    """Process a received message and determine if the repository follows TDD or has DevOps files."""
     data = json.loads(message.data())
-    trees_urls = data.get('trees_url', '').replace('{/sha}', f"/{data.get('default_branch')}")
-
+    trees_url = data.get('trees_url', '').replace('{/sha}', f"/{data.get('default_branch')}")
+    
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": f"Bearer {bearer_token}",
@@ -56,21 +63,31 @@ def process_message(message, bearer_token, producer):
     }
     
     try:
-        
-        # logging.info(f"Data: {data}")
         full_name = data["full_name"]
-        # logging.info(f"Name: {full_name}")
-        # logging.info(f"trees_urls: {data.get('trees_url')}")
-        
-        request_url = f"{trees_urls}?recursive=1"
-        # logging.info(f"URL: {request_url}")
+        request_url = f"{trees_url}?recursive=1"
+
+        logging.info(f"Repo to be processed: {full_name}")
         response = requests.get(request_url, headers=headers)
         if response.status_code == 200:
             data = response.json()
             files = data["tree"]
-            # logging.info(f"Length: {len(files)}")
+            
+            # Check for TDD files
+            tdd_files_found = check_for_tdd_indicators(files)
+            # Check for DevOps files
+            devops_files_found = check_for_devops_indicators(files)
+            
+            data["tdd_files_found"] = tdd_files_found,
+            data["devops_files_found"] = devops_files_found
+            
+            # Produce result to Pulsar
+            producer.send(json.dumps(data).encode('utf-8'))
+            
+            logging.info(f"Processed repository {full_name}: TDD files found - {tdd_files_found}, DevOps files found - {devops_files_found}")
+        
         elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
             handle_rate_limit(response)
+            process_message(message, bearer_token, producer)
         else:
             logging.error("Error fetching data")
             raise Exception(f"Error fetching data: {response.content}")

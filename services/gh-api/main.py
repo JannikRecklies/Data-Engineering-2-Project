@@ -18,7 +18,7 @@ logging.basicConfig(
 PULSAR_BROKER_URL = "PULSAR_BROKER_URL"
 PULSAR_PUSH_TOPIC = "PULSAR_PUSH_TOPIC"
 
-GITHUB_REPOS_URL = "https://api.github.com/search/repositories"
+GITHUB_REPOS_URL = "https://api.github.com/search/repositories" # 30 requests per minute
 GITHUB_BEARER_TOKEN = "GITHUB_BEARER_TOKEN"
 GITHUB_REPOS_PER_FETCH = "GITHUB_REPOS_PER_FETCH"
 
@@ -38,9 +38,7 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
             for repo in repsoitories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
-                repo_info["default_branch"] = repo["default_branch"]
                 repo_info["trees_url"] = repo["trees_url"]
-                repo_info["size"] = repo["size"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
                 # logging.info("producing: " + json.dumps(repo_info))
