@@ -4,39 +4,44 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PulsarClient')))
 from client import PulsarProducer, PulsarConsumer
 
-# initial_obj = {
+# initial_obj = [{
+#     "id": some_num
 #     "full_name": "test"
 #     "languages_url": "https:/github.api"
 #     "commits_url": "https:/github.api"
 #     "contents_url": ""
-# }
+#     "languages": ["python", "hello", "test"]
+# }, ...]
 
 
 def GetRepoLanguages(token, myConsumer, myProducer):
     gh_obj = json.loads(myConsumer.Consume())
-    print("recieved info: {}".format(gh_obj))
+    # print("recieved info: {}".format(gh_obj))
     for idx, repo in enumerate(gh_obj):
-        if gh_obj["languages_url"]:
-            url = "{}".format(gh_obj["languages_url"])
+        if gh_obj[idx]["languages_url"]:
+            url = "{}".format(gh_obj[idx]["languages_url"])
             headers = {
                 "Accept": "application/vnd.github.v3+json",
                 "Authorization": "Bearer {}".format(token),
                 "X-GitHub-Api-Version": "2022-11-28"
             }
         else:
-            print("Error: No language ep available for {}".format(gh_obj["full_name"]))
+            print("Error: No language ep available for {}".format(gh_obj[idx]["full_name"]))
             continue
         response = requests.get(url, headers=headers)
-        gh_obj[gh_obj]["languages"] = []
+        gh_obj[idx]["languages"] = []
         if response.status_code == 200:
             data = response.json()
             for k in data:
-                gh_obj[gh_obj]["languages"].append(k)
+                gh_obj[idx]["languages"].append(k)
+                # this dies not take into account that some repositiories might be empty, 
+                # so in the subsequent modules
+                # we can, perhaps, first filter out the repos that are empty and then continue
         else:
             print("Request failed with status code:", response.status_code)
             print("Response body:", response.text)
             continue
-        print("producing:", json.dumps(gh_obj))
+        print("producing: {}\n\n\n".format(json.dumps(gh_obj)))
         myProducer.Produce(json.dumps(gh_obj))
 
 
