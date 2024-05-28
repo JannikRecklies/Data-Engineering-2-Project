@@ -58,7 +58,7 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
             logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min} minutes.")
             time.sleep(wait_time_sec)
         else:
-            logging.error("Error fetching data")
+            logging.error(f"Error fetching data: {response.content}")
             raise Exception(f"Error fetching data: {response.json()}")
     
 

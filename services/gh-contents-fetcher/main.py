@@ -93,7 +93,8 @@ def process_message(message, bearer_token, producer):
             raise Exception(f"Error fetching data: {response.content}")
     
     except Exception as e:
-        logging.error(f"Error processing repository {data.get('full_name')}: {str(e)}")
+        logging.error(f"Error processing message: {message}")
+        logging.error(f"Error/Reason: {str(e)}")
 
 def env_vars_set_correct():
     """Check if the required environment variables are set."""
