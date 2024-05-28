@@ -89,11 +89,11 @@ def process_message(message, bearer_token, producer):
             handle_rate_limit(response)
             process_message(message, bearer_token, producer)
         else:
-            logging.error("Error fetching data")
+            logging.error("Error fetching additional data")
             raise Exception(f"Error fetching data: {response.content}")
     
     except Exception as e:
-        logging.error(f"Error processing message: {message}")
+        logging.error(f"Error processing message: {data}")
         logging.error(f"Error/Reason: {str(e)}")
 
 def env_vars_set_correct():
