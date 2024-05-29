@@ -9,6 +9,13 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+init_query = """CREATE TABLE IF NOT EXISTS languages (
+    language_name VARCHAR(50) PRIMARY KEY,
+    popularity_count INT,
+    tdd_count INT,
+    tdd_and_devops_count INT
+);"""
+
 # recvd_obj = {
 #     "id": 10,
 #     "name": "repo_name",
@@ -72,7 +79,7 @@ def calculate_sum(msg, db_conn, table_name):
             languages_table[language]["tdd_count"] += 1
         languages_table[language]["popularity_count"] += 1
 
-    query, values = update_language_values(languages_table)
+    query, values = update_language_values(languages_table, table_name)
     try:
         with db_conn.cursor() as cursor:
             cursor.executemany(query, values)
@@ -129,7 +136,13 @@ def main():
             password=db_pass,
             database=db_name
         )
-    
+    try:
+        with mysql_db_connection.cursor() as cursor:
+            cursor.execute(init_query)
+        mysql_db_connection.commit()
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        mysql_db_connection.rollback()
 
     client = pulsar.Client(pulsar_ep)
     consumer = client.subscribe(topic=pulsar_pull_topic, subscription_name=pulsar_subscription, consumer_type=pulsar.ConsumerType.Shared)
