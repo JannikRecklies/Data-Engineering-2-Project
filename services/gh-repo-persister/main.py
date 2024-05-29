@@ -50,17 +50,19 @@ def update_language_values(languages_table, mysql_db):
         cursor.execute(query)
         languages_record = cursor.fetchall()
 
-    for row in languages_record:
-        language_name = "".format(row[0])
-        if language_name  not in languages_table:
-            continue
-        language_popularity = row[1]
-        language_tdd = row[2]
-        language_t_and_d = row[3]
-        languages_table[language_name] = languages_table[language_name]["popularity_count"] + language_popularity
-        languages_table[language_name] = languages_table[language_name]["tdd_count"] + language_tdd
-        languages_table[language_name] = languages_table[language_name]["tdd_and_devops_count"] + language_t_and_d
+    for name in languages_table:
+        for row in languages_record:
+            language_name = "".format(row[0])
+            if name == language_name:
+                language_popularity = row[1]
+                language_tdd = row[2]
+                language_t_and_d = row[3]
+                languages_table[language_name] = languages_table[language_name]["popularity_count"] + language_popularity
+                languages_table[language_name] = languages_table[language_name]["tdd_count"] + language_tdd
+                languages_table[language_name] = languages_table[language_name]["tdd_and_devops_count"] + language_t_and_d
+                logging.info("updated language {}, with pop_count: {}, tdd_count: {}, t_and_d_count: {}\n\n", language_name, languages_table[language_name]["popularity_count"], languages_table[language_name]["tdd_count"], languages_table[language_name]["tdd_and_devops_count"])
     query, values = create_insert_update_sql(languages_table)
+    logging.info("values to b e inserted are: {}\n---\n", values)
     return query, values
 
 
