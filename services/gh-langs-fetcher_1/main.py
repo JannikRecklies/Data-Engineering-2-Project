@@ -16,6 +16,14 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
+def handle_rate_limit(response):
+    """Handle GitHub API rate limiting."""
+    reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+    wait_time_sec = max(reset_time - time.time(), 1)
+    wait_time_min = wait_time_sec / 60
+    logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
+    time.sleep(wait_time_sec + 60) # extra safegaurd
+
 def GetRepoLanguages(msg, token, producer):
     gh_obj = json.loads(msg.data())
     logging.info("recieved info: {}".format(gh_obj))
@@ -38,6 +46,11 @@ def GetRepoLanguages(msg, token, producer):
             # this dies not take into account that some repositiories might be empty, 
             # so in the subsequent modules
             # we can, perhaps, first filter out the repos that are empty and then continue
+    elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+        handle_rate_limit(response)
+    else:
+        logging.error("Error fetching additional data")
+        raise Exception(f"Error fetching data. Response: {response.content}")
     else:
         logging.error("Request failed with status code:", response.status_code)
         logging.error("Response body:", response.text)

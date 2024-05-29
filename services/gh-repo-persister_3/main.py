@@ -65,7 +65,6 @@ def update_language_values(languages_table, mysql_db):
 def calculate_sum(msg, db_conn):
     repos_obj = json.loads(msg.data())
     languages_table = {}
-    logging.info("recvd msg: {}".format(repos_obj))
     # langs_count = { "lang1": {"popularity_count": count_repos, "tdd_count": tdd_count, "tdd_and_devops_count": t_and_d_count}, {"lang2": {...}}}
     for language in repos_obj["languages"]:
         if language not in languages_table:
