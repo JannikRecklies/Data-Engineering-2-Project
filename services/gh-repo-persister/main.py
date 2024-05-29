@@ -1,18 +1,21 @@
 import requests, json, pulsar
 import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PulsarClient')))
-from client import PulsarProducer, PulsarConsumer
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mysql_client')))
-from mysql_client import MySQLClient
+import logging
+import mysql.connector
 
-# recvd_obj = [{
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set the logging level to INFO
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# recvd_obj = {
 #     "id": 10,
 #     "name": "repo_name",
 #     "languages": ["python", "ruby", ...],
 #     "tdd": True,
 #     "devops": True
-# }, ...]
+# }
 
 def create_insert_update_sql(data):
     sql = """
@@ -52,39 +55,31 @@ def update_language_values(languages_table):
 # language_name | popularity_count | tdd_count | tdd_and_devops_count
 # python        |     100     |     70    |      50
 
-def CalcSum(my_consumer, my_db, table_name):
-    repos_obj = json.loads(my_consumer.Consume())
-    # print("recieved info: {}".format(langs_obj))
+def calculate_sum(msg, db_conn, table_name):
+    repos_obj = json.loads(msg.data())
     languages_table = {}
+    logging.info("recvd msg: {}".format(repos_obj))
     # langs_count = { "lang1": {"popularity_count": count_repos, "tdd_count": tdd_count, "tdd_and_devops_count": t_and_d_count}, {"lang2": {...}}}
-    for repo in repos_obj:
-        for language in repo["languages"]:
-            if not languages_table[language]:
-                languages_table[language] = {
-                    "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
-                }
-            if repo["tdd"] and repo["devops"]:
-                languages_table[language]["tdd_count"] += 1
-                languages_table[language]["tdd_and_devops_count"] += 1
-            elif repo["tdd"]:
-                languages_table[language]["tdd_count"] += 1
-            languages_table[language]["popularity_count"] += 1
+    for language in repos_obj["languages"]:
+        if not languages_table[language]:
+            languages_table[language] = {
+                "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
+            }
+        if repos_obj["tdd"] and repos_obj["devops"]:
+            languages_table[language]["tdd_count"] += 1
+            languages_table[language]["tdd_and_devops_count"] += 1
+        elif repos_obj["tdd"]:
+            languages_table[language]["tdd_count"] += 1
+        languages_table[language]["popularity_count"] += 1
 
     query, values = update_language_values(languages_table)
-    my_db.execute_many_query(update_query)
-
-
-        langs_count[lang] += 1
-        
-        new_count = 0
-        for l in lang_records:
-            new_count = l[1] + 1
-        update_query = "UPDATE {} \
-        SET count = {} \
-        WHERE lang_name = {};".format(table_name, new_count, lang)
-        my_db.execute_query(update_query)
-    print("total aggregated langauges: ", langs_count)
-    # TODO: should there be an interval after which the producer should be called? somethig like rate limiting
+    try:
+        with db_conn.cursor() as cursor:
+            cursor.executemany(query, values)
+        db_conn.commit()
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        db_conn.rollback()
 
 
 def main():
@@ -127,9 +122,26 @@ def main():
     # export DB_USER="user"
     # export DB_PASS="password"
     # export DB_NAME="languages"
-    my_consumer = PulsarConsumer(pulsar_ep, pulsar_pull_topic, pulsar_subscription, pulsar.ConsumerType.Shared)
     mysql_db = MySQLClient(db_host, db_user, db_pass, db_name)
-    CalcSum(my_consumer, mysql_db, "languages")
+    mysql_db_connection = mysql.connector.connect(
+            host=db_host,
+            user=db_user,
+            password=db_pass,
+            database=db_name
+        )
+    
+
+    client = pulsar.Client(pulsar_ep)
+    consumer = client.subscribe(topic=pulsar_pull_topic, subscription_name=pulsar_subscription, consumer_type=pulsar.ConsumerType.Shared)
+
+    while True:
+        msg = consumer.receive()
+        print("Received message: '%s'" % msg.data())
+        calculate_sum(msg, mysql_db_connection, db_name)
+        consumer.acknowledge(msg)
+
+    client.close()
+    mysql_db_connection.close()
 
 if __name__ == "__main__":
     main()
