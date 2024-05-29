@@ -27,9 +27,11 @@ spec:
               name: github-secret
               key: GITHUB_BEARER_TOKEN
         - name: PULSAR_PULL_TOPIC
-          value: gh_language_aggregator_topic
+          value: languages-tdd-devops-results
+        - name: PULSAR_SUBSCRIPTION
+          value: languages-tdd-subscription
         - name: DB_HOST
-          value: "mysql:3306"
+          value: "mysql"
         - name: DB_NAME
           value: "gh-processing-results"
         - name: DB_USER

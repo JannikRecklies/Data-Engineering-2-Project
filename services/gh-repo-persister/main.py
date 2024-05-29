@@ -62,24 +62,24 @@ def update_language_values(languages_table):
 # language_name | popularity_count | tdd_count | tdd_and_devops_count
 # python        |     100     |     70    |      50
 
-def calculate_sum(msg, db_conn, table_name):
+def calculate_sum(msg, db_conn):
     repos_obj = json.loads(msg.data())
     languages_table = {}
     logging.info("recvd msg: {}".format(repos_obj))
     # langs_count = { "lang1": {"popularity_count": count_repos, "tdd_count": tdd_count, "tdd_and_devops_count": t_and_d_count}, {"lang2": {...}}}
     for language in repos_obj["languages"]:
-        if not languages_table[language]:
+        if language not in languages_table:
             languages_table[language] = {
                 "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
             }
-        if repos_obj["tdd"] and repos_obj["devops"]:
+        if "tdd" in repos_obj and "devops" in repos_obj:
             languages_table[language]["tdd_count"] += 1
             languages_table[language]["tdd_and_devops_count"] += 1
-        elif repos_obj["tdd"]:
+        elif "tdd" in repos_obj:
             languages_table[language]["tdd_count"] += 1
         languages_table[language]["popularity_count"] += 1
 
-    query, values = update_language_values(languages_table, table_name)
+    query, values = update_language_values(languages_table)
     try:
         with db_conn.cursor() as cursor:
             cursor.executemany(query, values)
@@ -94,17 +94,13 @@ def main():
     if not pulsar_ep:
         print("Error: Pulsar endpoint not found in environment variable 'PULSAR_EP'")
         return
-    pulsar_pull_topic = os.getenv("PULSAR_PULL_TOPIC")
-    if not pulsar_pull_topic:
-        print("Error: Pulsar pull topic not found in environment variable 'PULSAR__PULL_TOPIC'")
-        return
     pulsar_subscription = os.getenv("PULSAR_SUBSCRIPTION")
     if not pulsar_subscription:
         print("Error: Pulsar subscription not found in environment variable 'PULSAR_SUBSCRIPTION'")
         return
-    pulsar_push_topic = os.getenv("PULSAR_PUSH_TOPIC")
-    if not pulsar_subscription:
-        print("Error: Pulsar push topic not found in environment variable 'PULSAR_PUSH_TOPIC'")
+    pulsar_pull_topic = os.getenv("PULSAR_PULL_TOPIC")
+    if not pulsar_pull_topic:
+        print("Error: Pulsar pull topic not found in environment variable 'PULSAR_PULL_TOPIC'")
         return
     db_host = os.getenv("DB_HOST")
     if not db_host:
@@ -129,7 +125,7 @@ def main():
     # export DB_USER="user"
     # export DB_PASS="password"
     # export DB_NAME="languages"
-    mysql_db = MySQLClient(db_host, db_user, db_pass, db_name)
+    # mysql_db = MySQLClient(db_host, db_user, db_pass, db_name)
     mysql_db_connection = mysql.connector.connect(
             host=db_host,
             user=db_user,
@@ -147,10 +143,11 @@ def main():
     client = pulsar.Client(pulsar_ep)
     consumer = client.subscribe(topic=pulsar_pull_topic, subscription_name=pulsar_subscription, consumer_type=pulsar.ConsumerType.Shared)
 
+    logging.info("connected to db and pulsar")
     while True:
         msg = consumer.receive()
-        print("Received message: '%s'" % msg.data())
-        calculate_sum(msg, mysql_db_connection, db_name)
+        logging.info("Received message: '%s'" % msg.data())
+        calculate_sum(msg, mysql_db_connection)
         consumer.acknowledge(msg)
 
     client.close()
