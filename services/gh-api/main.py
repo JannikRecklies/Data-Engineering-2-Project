@@ -39,12 +39,11 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
         query = f"q=created:{date}&sort=updated&order=desc&per_page={github_repos_per_fetch}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
         if response.status_code == 200:
-
             data = response.json()
-            repsoitories = data["items"]
+            repositories = data["items"]
             logging.info(f"Request url: {response.request.url}")
-            #logging.info(f"Received github repos of length: {len(repsoitories)}")
-            for repo in repsoitories:
+            #logging.info(f"Received github repos of length: {len(repositories)}")
+            for repo in repositories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
                 repo_info["trees_url"] = repo["trees_url"]
@@ -54,7 +53,6 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
                 # logging.info("producing: " + json.dumps(repo_info))
                 for producer in pulsar_producers:
                     producer.send(json.dumps(repo_info).encode('utf-8'))
-
 
             if 'next' not in response.links:
                 logging.info(f"Fetched all pages for a day")

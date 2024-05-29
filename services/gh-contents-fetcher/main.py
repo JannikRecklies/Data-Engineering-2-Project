@@ -39,6 +39,7 @@ DEVOPS_INDICATORS = [
     '.gitlab-ci.yml',
     'Jenkinsfile',
     'azure-pipelines.yml'
+    'Dockerfile'
 ]
 
 
