@@ -2,6 +2,7 @@ import requests, json, pulsar
 import os
 import sys
 import logging
+import time
 
 # initial_obj = {
 #     "full_name": "test"
@@ -15,6 +16,15 @@ logging.basicConfig(
     level=logging.INFO,  # Set the logging level to INFO
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
+
+def handle_rate_limit(response):
+    """Handle GitHub API rate limiting."""
+    reset_time = int(response.headers.get('X-RateLimit-Reset', time.time() + 60))
+    wait_time_sec = max(reset_time - time.time(), 1)
+    wait_time_min = wait_time_sec / 60
+    logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
+    time.sleep(wait_time_sec + 60) # extra safegaurd
+    logging.info("waking from my slumber\n\n")
 
 def GetRepoLanguages(msg, token, producer):
     gh_obj = json.loads(msg.data())
@@ -38,11 +48,13 @@ def GetRepoLanguages(msg, token, producer):
             # this dies not take into account that some repositiories might be empty, 
             # so in the subsequent modules
             # we can, perhaps, first filter out the repos that are empty and then continue
+    elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
+        handle_rate_limit(response)
     else:
-        logging.error("Request failed with status code:", response.status_code)
-        logging.error("Response body:", response.text)
+        logging.error("Request failed with status code: {}".format(response.status_code))
+        logging.error("Response body: {}".format(response.text))
         return
-    logging.info("producing: {}\n\n\n".format(json.dumps(gh_obj)))
+    logging.info("the new repo object along with languages:: {}\n\n\n".format(json.dumps(gh_obj)))
     producer.send(json.dumps(gh_obj).encode('utf-8'))
 
 def main():

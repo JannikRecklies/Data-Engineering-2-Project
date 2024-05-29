@@ -1,3 +1,0 @@
-requests
-pulsar-client
-mysql-connector-python-rf

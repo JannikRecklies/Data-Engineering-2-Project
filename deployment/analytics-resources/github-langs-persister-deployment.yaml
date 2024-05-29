@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-langs-persister
+  labels:
+    app: github-langs-persister
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-langs-persister
+  template:
+    metadata:
+      labels:
+        app: github-langs-persister
+    spec:
+      containers:
+      - name: github-langs-persister
+        image: jannikrecklies/gh-langs-persister:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_EP
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: PULSAR_PULL_TOPIC
+          value: languages-tdd-devops-results
+        - name: PULSAR_SUBSCRIPTION
+          value: languages-tdd-subscription
+        - name: DB_HOST
+          value: "mysql"
+        - name: DB_NAME
+          value: "gh-processing-results"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASS
+          value: "password"

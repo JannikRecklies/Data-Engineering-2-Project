@@ -39,17 +39,23 @@ DEVOPS_INDICATORS = [
     '.gitlab-ci.yml',
     'Jenkinsfile',
     'azure-pipelines.yml'
+    'Dockerfile'
 ]
 
 
 def check_for_devops_indicators(files):
-    """Check if any of the files match the indicators."""
-    return any(indicator in file["path"] for file in files for indicator in DEVOPS_INDICATORS)
+    """Check if any of the files matches the indicators."""
+    for devops in DEVOPS_INDICATORS:
+        if devops in files:
+            return True
+    return False
 
 def check_for_tdd_indicators(files):
-    """Check if the number of files matching the indicators is greater than 3."""
-    match_count = sum(1 for file in files if any(indicator in file["path"] for indicator in DEVOPS_INDICATORS))
-    return match_count > 3
+    """Check if any of the files matches the indicators."""
+    for test in TEST_INDICATORS:
+        if test in files:
+            return True
+    return False
 
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD or has DevOps files."""
@@ -77,7 +83,7 @@ def process_message(message, bearer_token, producer):
             # Check for DevOps files
             devops_files_found = check_for_devops_indicators(files)
             
-            data["tdd_files_found"] = tdd_files_found,
+            data["tdd_files_found"] = tdd_files_found
             data["devops_files_found"] = devops_files_found
             
             # Produce result to Pulsar
@@ -112,7 +118,8 @@ def handle_rate_limit(response):
     wait_time_sec = max(reset_time - time.time(), 1)
     wait_time_min = wait_time_sec / 60
     logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
-    time.sleep(wait_time_sec)
+    time.sleep(wait_time_sec + 60) # extra safegaurd
+    logging.info("waking from my slumber\n\n")
 
 def main():
     """Main function to run the Pulsar consumer."""
