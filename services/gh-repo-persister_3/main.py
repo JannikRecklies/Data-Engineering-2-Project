@@ -72,10 +72,10 @@ def calculate_sum(msg, db_conn):
                 "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
             }
         if "tdd_files_found" in repos_obj and "devops_files_found" in repos_obj:
-            if repos_obj["tdd_files_found"][0] and repos_obj["devops_files_found"]:
+            if repos_obj["tdd_files_found"] and repos_obj["devops_files_found"]:
                 languages_table[language]["tdd_count"] += 1
                 languages_table[language]["tdd_and_devops_count"] += 1
-            elif repos_obj["tdd_files_found"][0]:
+            elif repos_obj["tdd_files_found"]:
                 languages_table[language]["tdd_count"] += 1
         languages_table[language]["popularity_count"] += 1
 
