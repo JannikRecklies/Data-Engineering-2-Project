@@ -33,14 +33,8 @@ def create_insert_update_sql(data):
         tdd_count = VALUES(tdd_count),
         tdd_and_devops_count = VALUES(tdd_and_devops_count)
     """
-    values = []
-    for lang, counts in data.items():
-        values.append((
-            lang,
-            counts['popularity_count'],
-            counts['tdd_count'],
-            counts['tdd_and_devops_count']
-        ))
+    values = [(lang, counts['popularity_count'], counts['tdd_count'], counts['tdd_and_devops_count'])
+              for lang, counts in data.items()]
     return sql, values
 
 def update_language_values(languages_table, mysql_db):
@@ -49,18 +43,16 @@ def update_language_values(languages_table, mysql_db):
     with mysql_db.cursor() as cursor:
         cursor.execute(query)
         languages_record = cursor.fetchall()
-
-    for name in languages_table:
-        for row in languages_record:
-            language_name = "".format(row[0])
-            if name == language_name:
-                language_popularity = row[1]
-                language_tdd = row[2]
-                language_t_and_d = row[3]
-                languages_table[language_name] = languages_table[language_name]["popularity_count"] + language_popularity
-                languages_table[language_name] = languages_table[language_name]["tdd_count"] + language_tdd
-                languages_table[language_name] = languages_table[language_name]["tdd_and_devops_count"] + language_t_and_d
-                logging.info("updated language {}, with pop_count: {}, tdd_count: {}, t_and_d_count: {}\n\n", language_name, languages_table[language_name]["popularity_count"], languages_table[language_name]["tdd_count"], languages_table[language_name]["tdd_and_devops_count"])
+    for row in languages_record:
+        language_name = row[0]
+        language_popularity = row[1]
+        language_tdd = row[2]
+        language_t_and_d = row[3]
+        if language_name in languages_table:
+            languages_table[language_name]["popularity_count"] += language_popularity
+            languages_table[language_name]["tdd_count"] += language_tdd
+            languages_table[language_name]["tdd_and_devops_count"] += language_t_and_d
+            logging.info(f"Updated language {language_name}, with pop_count: {languages_table[language_name]['popularity_count']}, tdd_count: {languages_table[language_name]['tdd_count']}, t_and_d_count: {languages_table[language_name]['tdd_and_devops_count']}")
     query, values = create_insert_update_sql(languages_table)
     logging.info("values to be inserted are: {}\n---\n".format(values))
     return query, values
