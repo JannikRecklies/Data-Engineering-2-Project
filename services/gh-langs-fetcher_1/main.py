@@ -23,6 +23,7 @@ def handle_rate_limit(response):
     wait_time_min = wait_time_sec / 60
     logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
     time.sleep(wait_time_sec + 60) # extra safegaurd
+    logging.info("waking from my slumber\n\n")
 
 def GetRepoLanguages(msg, token, producer):
     gh_obj = json.loads(msg.data())
@@ -49,13 +50,10 @@ def GetRepoLanguages(msg, token, producer):
     elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
         handle_rate_limit(response)
     else:
-        logging.error("Error fetching additional data")
-        raise Exception(f"Error fetching data. Response: {response.content}")
-    else:
-        logging.error("Request failed with status code:", response.status_code)
-        logging.error("Response body:", response.text)
+        logging.error("Request failed with status code: {}".format(response.status_code))
+        logging.error("Response body: {}".format(response.text))
         return
-    logging.info("producing: {}\n\n\n".format(json.dumps(gh_obj)))
+    logging.info("the new repo object along with languages:: {}\n\n\n".format(json.dumps(gh_obj)))
     producer.send(json.dumps(gh_obj).encode('utf-8'))
 
 def main():

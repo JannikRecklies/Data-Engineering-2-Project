@@ -83,7 +83,7 @@ def process_message(message, bearer_token, producer):
             # Check for DevOps files
             devops_files_found = check_for_devops_indicators(files)
             
-            data["tdd_files_found"] = tdd_files_found,
+            data["tdd_files_found"] = tdd_files_found
             data["devops_files_found"] = devops_files_found
             
             # Produce result to Pulsar
@@ -119,6 +119,7 @@ def handle_rate_limit(response):
     wait_time_min = wait_time_sec / 60
     logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min:.2f} minutes.")
     time.sleep(wait_time_sec + 60) # extra safegaurd
+    logging.info("waking from my slumber\n\n")
 
 def main():
     """Main function to run the Pulsar consumer."""
