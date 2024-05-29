@@ -62,7 +62,7 @@ def update_language_values(languages_table, mysql_db):
                 languages_table[language_name] = languages_table[language_name]["tdd_and_devops_count"] + language_t_and_d
                 logging.info("updated language {}, with pop_count: {}, tdd_count: {}, t_and_d_count: {}\n\n", language_name, languages_table[language_name]["popularity_count"], languages_table[language_name]["tdd_count"], languages_table[language_name]["tdd_and_devops_count"])
     query, values = create_insert_update_sql(languages_table)
-    logging.info("values to b e inserted are: {}\n---\n", values)
+    logging.info("values to be inserted are: {}\n---\n".format(values))
     return query, values
 
 
@@ -80,11 +80,12 @@ def calculate_sum(msg, db_conn):
             languages_table[language] = {
                 "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
             }
-        if "tdd" in repos_obj and "devops" in repos_obj:
-            languages_table[language]["tdd_count"] += 1
-            languages_table[language]["tdd_and_devops_count"] += 1
-        elif "tdd" in repos_obj:
-            languages_table[language]["tdd_count"] += 1
+        if "tdd_files_found" in repos_obj and "devops_files_found" in repos_obj:
+            if repos_obj["tdd_files_found"][0] and repos_obj["devops_files_found"]:
+                languages_table[language]["tdd_count"] += 1
+                languages_table[language]["tdd_and_devops_count"] += 1
+            elif repos_obj["tdd_files_found"][0]:
+                languages_table[language]["tdd_count"] += 1
         languages_table[language]["popularity_count"] += 1
 
     query, values = update_language_values(languages_table, db_conn)
