@@ -43,11 +43,17 @@ def create_insert_update_sql(data):
         ))
     return sql, values
 
-def update_language_values(languages_table):
+def update_language_values(languages_table, mysql_db):
     query = "select * from languages"
-    languages_record = my_db.fetch_all(query)
+    languages_record = ""
+    with mysql_db.cursor() as cursor:
+        cursor.execute(query)
+        languages_record = cursor.fetchall()
+
     for row in languages_record:
-        language_name = row[0]
+        language_name = "".format(row[0])
+        if language_name  not in languages_table:
+            continue
         language_popularity = row[1]
         language_tdd = row[2]
         language_t_and_d = row[3]
@@ -79,7 +85,7 @@ def calculate_sum(msg, db_conn):
             languages_table[language]["tdd_count"] += 1
         languages_table[language]["popularity_count"] += 1
 
-    query, values = update_language_values(languages_table)
+    query, values = update_language_values(languages_table, db_conn)
     try:
         with db_conn.cursor() as cursor:
             cursor.executemany(query, values)
