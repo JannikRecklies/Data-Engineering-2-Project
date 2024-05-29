@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-tdd-devops-processor
+  labels:
+    app: github-tdd-devops-processor
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-tdd-devops-processor
+  template:
+    metadata:
+      labels:
+        app: github-tdd-devops-processor
+    spec:
+      containers:
+      - name: github-tdd-devops-processor
+        image: jannikrecklies/gh-tdd-devops-processor:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_BROKER_URL
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: PULSAR_PULL_TOPIC
+          value: tdd-devops-processing
+        - name: PULSAR_PUSH_TOPIC
+          value: languages-tdd-devops-results
+
+
+

@@ -14,10 +14,10 @@ users:
     home: /home/appuser
     shell: /bin/bash
     ssh_authorized_keys:
-      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDEyH6LFTagolfkZWhJALDEdy9SqDULluBvJZDc0pibrAx8zTLPLglh6yfvAo+l7ktRnhlWZB5Y7SLPXoXphNQ/XcBDYu1kErzfHqXgl/+UvKzq2/9uoyBB5+5rI6Tr3ADdY1TGbFFVsHY4DR1/JTAHdk9pN8YBNIGUv882OFA5XH2CsC7q7eVwPlChKbY0ssqgzxDaTMZMGYZR3nbxdUyQWi/azjs1RmYI4keCwDFYbRQeiIBcZvja4e4jR3XnEiI7gQGWi3/F8u77jY7q07yG53F+u8l1BS+ZjA8qRCu9b9lLEjYYWNjxpkzswzkFLXFr6RV8wEjz4vHwS6P8f3IArdNU061jI/Q9RG95nwa52i4LzavGXrCvgbxjCObtm3e67uhCj991OYeyMpA16ebazuJ+oaYX9scgdpI/0AkDYfZ74BKWJVD9yH2D/wy4f1n8oEEw+Vm7EyQM09l+3JYY/0tMJhls1D9eVvzF5qL7lw1bTdfMdAY4Xl26tMLmnqc= ubuntu@jannik-recklies-project
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDpPo3bTGgRkrvi/9Tdv6rosoK5fAQlrCP0wsifaNBKqvZ0Bv1Sg2fU8rW4sLSdHrSKEg4xUqiX50i9wD+wGrjtYDPMCuVLpoH7PuvGQkIEaZR/bK571hHuAcHtRkl0BeVVvVzMFtFNRbXkbBGDMHtBPy1OVC0p1cfN5982FN+lSGMB1NA8HxY6vmMHcD0/iUGxpbv0YItE20haY3rdx5U8RcYFegezfZNCwCWkPYkHWQxHFH1KgjbeCR0rOwddNkeeemSB+4HCGnqdHRZyTNr5jhJXk1ccJeDUfFzWQ9uUcDfVvsLIrJbXRXWQfoMsqkAIsxq5GICXmY4U2gcxDraKE8c78UfI6sqT63OwmdHqw2QEKF6JfbMgbzlwfQUel/gufjKF1fok0oCaAUxPxSaJvEN9sTYeD2yaeLRr460ISkQYOZqyZR7NKd4gWkk9vRye+wdV038ajD29ZhS8EvQ+9rasCNfTcM987r14B6w7oYgAp4gejn7WyJBcoYjqmhM= ubuntu@jannik-recklies-project
 
 runcmd:
-  - curl -sfL https://get.k3s.io | K3S_URL=https://192.168.2.84:6443 K3S_TOKEN=K10905583fd8411eff875fc1070b957b6fbe24730bc4688bd830b067b5b4493e778::server:9f4ad6816ce3e64e14df2d4d4d459880 sh -
+  - curl -sfL https://get.k3s.io | K3S_URL=https://192.168.2.105:6443 K3S_TOKEN=K10329bd27d0255302da45bbb359f0031cf4eaa67345e1130ce099403209f74bbb4::server:ab2fc49bb8b797dc0fe90f93abb0c62a sh -
   #- curl -sfL https://get.k3s.io | K3S_URL=https://<IP>:6443 K3S_TOKEN=<k3s_token> sh -
 
 byobu_default: system

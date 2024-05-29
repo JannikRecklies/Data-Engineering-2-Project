@@ -34,6 +34,11 @@ The following instructions are closely linked to the official guide given by Apa
 
 1. Switch location in terminal to the deployment folder.
 
+2. In the github-secret.yaml replace <base64_encoded_token> with your actual encoded github token. For that purpose, the github token can be encoded like:
+    ```console 
+    echo -n '<base64_token>' | base64
+    ```
+
 2. Create all Kubernetes resources for the processing/analytics:
     ```console 
     kubectl apply -f analytics-resources

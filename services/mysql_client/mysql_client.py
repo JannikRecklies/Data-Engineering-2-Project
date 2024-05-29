@@ -30,6 +30,6 @@ class MySQLClient:
     def close(self):
         self.cursor.close()
         self.connection.close()
-
+    
     def __del__(self):
         self.close()
