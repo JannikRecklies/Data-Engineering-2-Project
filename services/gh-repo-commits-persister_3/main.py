@@ -26,7 +26,7 @@ init_query = """CREATE TABLE IF NOT EXISTS repo_commits (
 def persist_repo_commits(msg, db_conn):
     repos_obj = json.loads(msg.data())
     commits_count = repos_obj["commits_count"]
-    repo_name = repo_obj["full_name"]
+    repo_name = repos_obj["full_name"]
     query = """INSERT INTO repo_commits (repository_name, commits_count) VALUES ({}, {})""".format(repo_name, commits_count)
     try:
         with db_conn.cursor() as cursor:
