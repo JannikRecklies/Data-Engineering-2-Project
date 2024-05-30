@@ -49,9 +49,9 @@ def update_language_values(languages_table, mysql_db):
         language_tdd = row[2]
         language_t_and_d = row[3]
         if language_name in languages_table:
-            languages_table[language_name]["popularity_count"] += language_popularity
-            languages_table[language_name]["tdd_count"] += language_tdd
-            languages_table[language_name]["tdd_and_devops_count"] += language_t_and_d
+            languages_table[language_name]["popularity_count"] += int(language_popularity)
+            languages_table[language_name]["tdd_count"] += int(language_tdd)
+            languages_table[language_name]["tdd_and_devops_count"] += int(language_t_and_d)
             logging.info(f"Updated language {language_name}, with pop_count: {languages_table[language_name]['popularity_count']}, tdd_count: {languages_table[language_name]['tdd_count']}, t_and_d_count: {languages_table[language_name]['tdd_and_devops_count']}")
     query, values = create_insert_update_sql(languages_table)
     logging.info("values to be inserted are: {}\n---\n".format(values))
@@ -65,13 +65,13 @@ def update_language_values(languages_table, mysql_db):
 def calculate_sum(msg, db_conn):
     repos_obj = json.loads(msg.data())
     languages_table = {}
-    # langs_count = { "lang1": {"popularity_count": count_repos, "tdd_count": tdd_count, "tdd_and_devops_count": t_and_d_count}, {"lang2": {...}}}
     for language in repos_obj["languages"]:
         if language not in languages_table:
             languages_table[language] = {
                 "popularity_count": 0, "tdd_count": 0, "tdd_and_devops_count": 0
             }
         if "tdd_files_found" in repos_obj and "devops_files_found" in repos_obj:
+            logging.info("Repo: {}, the tdd bool is: {}, the devops bool is: {}".format(repos_obj["name"], repos_obj["tdd_files_found"], repos_obj["devops_files_found"]))
             if repos_obj["tdd_files_found"] and repos_obj["devops_files_found"]:
                 languages_table[language]["tdd_count"] += 1
                 languages_table[language]["tdd_and_devops_count"] += 1

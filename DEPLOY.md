@@ -22,6 +22,15 @@ kubectl apply -f ./
 # To clean the languages table
 kubectl exec -it mysql-75f54cf9ff-dxvtl  -- mysql -uroot -ppassword -e "USE gh-processing-results; DELETE FROM languages;"
 
+# To get top 10 languages
+kubectl exec -it mysql-75f54cf9ff-dxvtl  -- mysql -uroot -ppassword -e "USE gh-processing-results; SELECT * FROM languages ORDER BY popularity_count DESC LIMIT 10;"
+
+# To get top 10 tdd languages
+kubectl exec -it mysql-75f54cf9ff-dxvtl  -- mysql -uroot -ppassword -e "USE gh-processing-results; SELECT * FROM languages ORDER BY tdd_count DESC LIMIT 10;"
+
+# To get top 10 tdd_and_devops languages
+kubectl exec -it mysql-75f54cf9ff-dxvtl  -- mysql -uroot -ppassword -e "USE gh-processing-results; SELECT * FROM languages ORDER BY tdd_and_devops_count DESC LIMIT 10;"
+
 # Build and deploy the commits flow
 pushd /home/ubuntu/Data-Engineering-2-Project/services/gh-commit-processor_1
 sudo docker build -t jannikrecklies/gh-commits-aggregator:latest .
