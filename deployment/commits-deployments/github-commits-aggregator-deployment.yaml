@@ -1,8 +1,14 @@
-apiVersion: batch/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: github-commits-aggregator
+  labels:
+    app: github-commits-aggregator
 spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-commits-aggregator
   template:
     metadata:
       labels:
@@ -26,5 +32,3 @@ spec:
           value: "repos_and_commits"
         - name: PULSAR_SUBSCRIPTION
           value: "get-commits"
-      restartPolicy: Never
-  backoffLimit: 1  # Number of retries before considering the Job as failed
