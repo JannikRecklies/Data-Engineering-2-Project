@@ -55,7 +55,7 @@ def fetch_repo_commits(bearer_token, message, pulsar_producer):
             num_commits += len(resp)
             commit_url = get_next_page_url(response.headers, 'rel="next"')
             if commit_url is None:
-                logging.info(f"Fetched all commits for {}".format(repo_info["full_name"]))
+                logging.info("Fetched all commits for {}".format(repo_info["full_name"]))
                 repo_info["commits_count"] = num_commits
                 pulsar_producer.send(json.dumps(repo_info).encode('utf-8'))
                 return
