@@ -27,14 +27,16 @@ def persist_repo_commits(msg, db_conn):
     repos_obj = json.loads(msg.data())
     commits_count = repos_obj["commits_count"]
     repo_name = repos_obj["full_name"]
-    query = """INSERT INTO repo_commits (repository_name, commits_count) VALUES ({}, {})""".format(repo_name, commits_count)
+    query = "INSERT INTO repo_commits (repository_name, commits_count) VALUES (%s, %s);"
+    q_args = (repo_name, commits_count)
     try:
         with db_conn.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, q_args)
         db_conn.commit()
     except Exception as e:
         logging.error(f"Error: {e}")
         db_conn.rollback()
+    logging.info("successfully added commits count: {} for repo: {}\n\n".format(commits_count, repo_name))
 
 
 def main():
