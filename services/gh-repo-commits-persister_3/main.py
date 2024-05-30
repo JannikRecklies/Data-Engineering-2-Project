@@ -36,7 +36,7 @@ def persist_repo_commits(msg, db_conn):
     except Exception as e:
         logging.error(f"Error: {e}")
         db_conn.rollback()
-    logging.info("successfully added commits count: {} for repo: {}\n\n", commits_count, repo_name)
+    logging.info("successfully added commits count: {} for repo: {}\n\n".format(commits_count, repo_name))
 
 
 def main():
