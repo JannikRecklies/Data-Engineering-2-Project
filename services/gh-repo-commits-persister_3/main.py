@@ -11,8 +11,8 @@ logging.basicConfig(
 
 init_query = """CREATE TABLE IF NOT EXISTS repo_commits (
     repository_name VARCHAR(50) PRIMARY KEY,
-    commits_count INT,
-);"""
+    commits_count INT
+    );"""
 
 # recvd_obj = {
 #     "id": 10,
