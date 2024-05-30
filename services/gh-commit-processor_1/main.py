@@ -46,7 +46,7 @@ def fetch_repo_commits(bearer_token, message, pulsar_producer):
             "X-GitHub-Api-Version": "2022-11-28"
     }
     repo_info = json.loads(message.data())
-    commit_url = repo_info["commits_url"]
+    commit_url = repo_info["commits_url"].replace("{/sha}", "")
     num_commits = 0
     while True:
         response = requests.get(commit_url, headers=headers)
