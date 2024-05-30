@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 
 init_query = """CREATE TABLE IF NOT EXISTS repo_commits (
-    repository_name VARCHAR(50) PRIMARY KEY,
+    repository_name VARCHAR(255) PRIMARY KEY,
     commits_count INT
     );"""
 
