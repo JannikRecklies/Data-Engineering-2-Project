@@ -41,6 +41,8 @@ The following instructions are closely linked to the official guide given by Apa
 
 2. Create all Kubernetes resources for the processing/analytics:
     ```console 
+    kubectl apply -f database-manifest
+    kubectl apply -f commits-deployments
     kubectl apply -f analytics-resources
     ```
 
