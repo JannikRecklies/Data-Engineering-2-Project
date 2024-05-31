@@ -27,9 +27,9 @@ spec:
               name: github-secret
               key: GITHUB_BEARER_TOKEN
         - name: PULSAR_PULL_TOPIC
-          value: languages-processing-test-1
+          value: tdd-devops-processing
         - name: PULSAR_PUSH_TOPIC
-          value: languages-tdd
+          value: languages-tdd-devops-results
 
 
 

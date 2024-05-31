@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-commits-aggregator
+  labels:
+    app: github-commits-aggregator
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-commits-aggregator
+  template:
+    metadata:
+      labels:
+        app: github-commits-aggregator
+    spec:
+      containers:
+      - name: github-commits-aggregator
+        image: jannikrecklies/gh-commits-aggregator:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: PULSAR_EP
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: PULSAR_PULL_TOPIC
+          value: "commits-processing"
+        - name: PULSAR_PUSH_TOPIC
+          value: "repos_and_commits"
+        - name: PULSAR_SUBSCRIPTION
+          value: "get-commits"

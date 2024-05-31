@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-commits-persister
+  labels:
+    app: github-commits-persister
+spec:
+  replicas: 1 # not scalable currently
+  selector:
+    matchLabels:
+      app: github-commits-persister
+  template:
+    metadata:
+      labels:
+        app: github-commits-persister
+    spec:
+      containers:
+      - name: github-commits-persister
+        image: jannikrecklies/gh-commits-persister:latest  # Replace with your Docker image name
+        imagePullPolicy: Always
+        env:
+        - name: PULSAR_EP
+          value: "pulsar://pulsar-broker:6650"  # Set the Pulsar broker URL
+        - name: GITHUB_BEARER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-secret
+              key: GITHUB_BEARER_TOKEN
+        - name: PULSAR_PULL_TOPIC
+          value: "repos_and_commits"
+        - name: PULSAR_SUBSCRIPTION
+          value: commits-collection-subscription
+        - name: DB_HOST
+          value: "mysql"
+        - name: DB_NAME
+          value: "gh-processing-results"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASS
+          value: "password"

@@ -5,8 +5,7 @@ import time
 import pulsar
 from datetime import datetime, timedelta
 import logging
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'PulsarClient')))
-from client import PulsarProducer
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -40,21 +39,20 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
         query = f"q=created:{date}&sort=updated&order=desc&per_page={github_repos_per_fetch}&page={page}"
         response = requests.get(f"{GITHUB_REPOS_URL}?{query}", headers=headers)
         if response.status_code == 200:
-
             data = response.json()
-            repsoitories = data["items"]
+            repositories = data["items"]
             logging.info(f"Request url: {response.request.url}")
-            #logging.info(f"Received github repos of length: {len(repsoitories)}")
-            for repo in repsoitories:
+            #logging.info(f"Received github repos of length: {len(repositories)}")
+            for repo in repositories:
                 repo_info = {}
                 repo_info["full_name"] = repo["full_name"]
                 repo_info["trees_url"] = repo["trees_url"]
+                repo_info["default_branch"] = repo["default_branch"]
                 repo_info["languages_url"] = repo["languages_url"]
                 repo_info["commits_url"] = repo["commits_url"]
                 # logging.info("producing: " + json.dumps(repo_info))
                 for producer in pulsar_producers:
-                  producer.Produce(json.dumps(repo_info))
-
+                    producer.send(json.dumps(repo_info).encode('utf-8'))
 
             if 'next' not in response.links:
                 logging.info(f"Fetched all pages for a day")
@@ -67,7 +65,8 @@ def fetch_repositories_for_date(date, headers, github_repos_per_fetch, pulsar_pr
             wait_time_sec = max(reset_time - time.time(), 1)
             wait_time_min = wait_time_sec / 60
             logging.warning(f"Rate limit exceeded. Waiting for {wait_time_min} minutes.")
-            time.sleep(wait_time_sec)
+            time.sleep(wait_time_sec + 60)
+            logging.info("waking from my slumber\n\n")
         else:
             logging.error(f"Error fetching data: {response.content}")
             raise Exception(f"Error fetching data: {response.json()}")
@@ -117,13 +116,14 @@ def main():
     bearer_token = os.getenv(GITHUB_BEARER_TOKEN)
     github_repos_per_fetch = os.getenv(GITHUB_REPOS_PER_FETCH)
 
-    producer1 = PulsarProducer(pulsar_broker_url, pulsar_push_topic1)
-    producer2 = PulsarProducer(pulsar_broker_url, pulsar_push_topic2)
+    client = pulsar.Client(pulsar_broker_url)
+    producer1 = client.create_producer(pulsar_push_topic1)
+    producer2 = client.create_producer(pulsar_push_topic2)
 
     fetch_repositories_for_past_year(bearer_token, github_repos_per_fetch, [producer1, producer2])
 
     logging.info("All repositories for the last year fetched. Closing client.")
-    client.close()
+    # client.close()
 
 
 if __name__ == "__main__":
