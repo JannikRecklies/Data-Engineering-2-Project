@@ -44,18 +44,13 @@ DEVOPS_INDICATORS = [
 
 
 def check_for_devops_indicators(files):
-    """Check if any of the files matches the indicators."""
-    for devops in DEVOPS_INDICATORS:
-        if devops in files:
-            return True
-    return False
+    """Check if any of the files match the indicators."""
+    return any(indicator in file["path"] for file in files for indicator in DEVOPS_INDICATORS)
 
 def check_for_tdd_indicators(files):
-    """Check if any of the files matches the indicators."""
-    for test in TEST_INDICATORS:
-        if test in files:
-            return True
-    return False
+    """Check if the number of files matching the indicators is greater than 3."""
+    match_count = sum(1 for file in files if any(indicator in file["path"] for indicator in TEST_INDICATORS))
+    return match_count > 3
 
 def process_message(message, bearer_token, producer):
     """Process a received message and determine if the repository follows TDD or has DevOps files."""
@@ -89,7 +84,8 @@ def process_message(message, bearer_token, producer):
             # Produce result to Pulsar
             producer.send(json.dumps(data).encode('utf-8'))
             
-            logging.info(f"Processed repository {full_name}: TDD files found - {tdd_files_found}, DevOps files found - {devops_files_found}")
+            logging.info(f"Processed repository {full_name}: {data}")
+            #logging.info(f"Processed repository {full_name}: TDD files found - {tdd_files_found}, DevOps files found - {devops_files_found}")
         
         elif response.status_code == 403 and 'API rate limit exceeded' in response.text:
             handle_rate_limit(response)
